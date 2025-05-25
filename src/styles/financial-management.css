@@ -1,0 +1,592 @@
+/* Основные стили */
+.financial-management {
+    font-family: "Roboto", "Arial", sans-serif;
+    color: #333;
+    background-color: #f5f7fa;
+    padding: 20px;
+  }
+  
+  /* Заголовок */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .header h1 {
+    margin: 0;
+    color: #2a3f54;
+    font-size: 24px;
+  }
+  
+  .period-selector {
+    display: flex;
+    align-items: center;
+  }
+  
+  .period-selector label {
+    margin-right: 10px;
+    font-weight: 500;
+  }
+  
+  .period-selector select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+  }
+  
+  /* Дашборд */
+  .dashboard {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+  }
+  
+  /* Статистика */
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  
+  .stat-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .stat-card h3 {
+    margin: 0 0 10px 0;
+    color: #5a6268;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2a3f54;
+    margin: 0;
+  }
+  
+  .total-amount,
+  .paid-amount {
+    grid-column: span 2;
+    background-color: #eef2f7;
+  }
+  
+  .total-amount .stat-value {
+    color: #3498db;
+  }
+  
+  .paid-amount .stat-value {
+    color: #27ae60;
+  }
+  
+  /* Элементы управления */
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .search-filter {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+  }
+  
+  .search-filter input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .search-filter select {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    min-width: 150px;
+  }
+  
+  .view-controls {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .view-button {
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  
+  .view-button.active {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    font-weight: 500;
+  }
+  
+  .create-button {
+    padding: 10px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+  
+  .create-button:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Карточки счетов */
+  .invoice-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  
+  .invoice-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 15px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid #ddd;
+  }
+  
+  .invoice-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .invoice-card.status-оплачено {
+    border-left-color: #27ae60;
+  }
+  
+  .invoice-card.status-частично-оплачено {
+    border-left-color: #f39c12;
+  }
+  
+  .invoice-card.status-ожидает-оплаты {
+    border-left-color: #e74c3c;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #2a3f54;
+  }
+  
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .status-оплачено {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .status-частично-оплачено {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  .status-ожидает-оплаты {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  
+  .card-body {
+    margin-bottom: 15px;
+  }
+  
+  .card-body p {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+  
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6c757d;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+  }
+  
+  .dates,
+  .payment-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Таблица счетов */
+  .invoice-table-container {
+    overflow-x: auto;
+  }
+  
+  .invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .invoice-table th,
+  .invoice-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .invoice-table th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    color: #495057;
+  }
+  
+  .invoice-table tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .invoice-table tr.status-оплачено {
+    background-color: #f9fff9;
+  }
+  
+  .invoice-table tr.status-частично-оплачено {
+    background-color: #fffdf5;
+  }
+  
+  .invoice-table tr.status-ожидает-оплаты {
+    background-color: #fff9f9;
+  }
+  
+  .action-button {
+    padding: 6px 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .action-button:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Модальные окна */
+  .modal-overlay {
+    background-color: white;
+    position: fixed;
+    top: 0%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-content {
+    padding: 20px;
+    margin-top: 60px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #2a3f54;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6c757d;
+  }
+  
+  .modal-body {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  /* Формы */
+  .form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .form-group label {
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #495057;
+  }
+  
+  .form-group input,
+  .form-group select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  
+  .primary-button {
+    padding: 10px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .primary-button:hover {
+    background-color: #2980b9;
+  }
+  
+  .primary-button:disabled {
+    background-color: #a0c8e7;
+    cursor: not-allowed;
+  }
+  
+  .secondary-button {
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .secondary-button:hover {
+    background-color: #e9ecef;
+  }
+  
+  .add-button {
+    padding: 6px 12px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .add-button:hover {
+    background-color: #219653;
+  }
+  
+  /* Детали счета */
+  .invoice-details {
+    max-width: 900px;
+  }
+  
+  .invoice-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .info-section,
+  .payment-summary {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+  }
+  
+  .info-section h3,
+  .payment-summary h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2a3f54;
+    font-size: 16px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+  
+  .info-grid,
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .info-item,
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .info-label,
+  .summary-label {
+    font-size: 12px;
+    color: #6c757d;
+  }
+  
+  .info-value,
+  .summary-value {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .payments-history {
+    margin-top: 20px;
+  }
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .section-header h3 {
+    margin: 0;
+    color: #2a3f54;
+    font-size: 16px;
+  }
+  
+  .payments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  .payments-table th,
+  .payments-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .payments-table th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    color: #495057;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .payment-form {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+  }
+  
+  .payment-form h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2a3f54;
+    font-size: 16px;
+  }
+  
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .invoice-info-grid {
+      grid-template-columns: 1fr;
+    }
+  
+    .form-row {
+      flex-direction: column;
+    }
+  
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .search-filter {
+      flex-direction: column;
+    }
+  }
+  

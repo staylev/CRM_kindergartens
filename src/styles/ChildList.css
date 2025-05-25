@@ -1,0 +1,95 @@
+.child-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .child-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+  }
+  
+  .child-item.child-present {
+    border-left: 4px solid var(--attendance-present);
+  }
+  
+  .child-item.child-absent {
+    border-left: 4px solid var(--attendance-absent);
+  }
+  
+  .child-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .avatar {
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--muted);
+    height: 100%;
+    width: 100%;
+  }
+  
+  .child-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .child-id {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+  
+  .status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .status-badge.present {
+    background-color: var(--attendance-present);
+    color: white;
+  }
+  
+  .status-badge.absent {
+    background-color: var(--attendance-absent);
+    color: white;
+  }
+  
+  .status-badge.late {
+    background-color: var(--attendance-late);
+    color: white;
+  }
+  

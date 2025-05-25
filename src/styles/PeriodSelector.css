@@ -1,0 +1,38 @@
+.period-selector {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .date-picker-group {
+    max-width: 300px;
+  }
+  
+  .date-picker-display {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+  
+  .date-picker-display span {
+    text-transform: capitalize;
+  }
+  
+  .current-month-button {
+    height: 2rem;
+    font-size: 0.875rem;
+    padding: 0 0.625rem;
+  }
+  
+  @media (max-width: 576px) {
+    .period-selector {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .date-picker-group {
+      width: 100%;
+    }
+  }
+  

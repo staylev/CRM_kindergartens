@@ -1,0 +1,41 @@
+/* MainHome.css */
+#layoutSidenav {
+    display: flex;
+    flex-direction: row;
+}
+
+#layoutSidenav_nav {
+    width: 100px;
+    transition: width 0.2s ease-in-out;
+}
+
+#layoutSidenav_content {
+    margin-left: 200px;
+    transition: margin-left 0.2s ease-in-out;
+    padding-left: 10px;
+}
+
+ 
+
+@media (max-width: 990) {
+    #layoutSidenav #layoutSidenav_nav{
+        transform: translateX(-6px) !important ;
+        transform: translateX(0)!important;
+    }
+}
+@media (max-width: 768px) {
+    #layoutSidenav #layoutSidenav_nav{
+        transform: translateX(-6px) !important;
+        
+    }
+}
+@media (max-width: 430px) {
+    #layoutSidenav_nav {
+        display: none; /* Скрыть сайдбар */
+    }
+    
+    #layoutSidenav_content {
+        margin-left: 0; /* Убрать отступ для контента */
+        padding-left: 0; /* Убрать отступ для контента */
+    }
+}

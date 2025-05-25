@@ -1,0 +1,19 @@
+
+services:
+  # Веб-сервер на Nginx
+  web:
+    image: localhost:5000/frontend:latest
+    build: 
+      context: .
+    ports:
+      - "80:80"  # Проброс порта 80 хоста на порт 80 контейнера
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - my_network
+
+# Сети
+networks:
+  my_network:
+    driver: bridge
