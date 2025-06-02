@@ -107,8 +107,8 @@ interface TablechildProps {
     
     const navigate = useNavigate();
 
-    const handleLinkClick = (id: string) => {
-      navigate(`/events/${id}`);
+    const handleLinkClick = (record: events) => {
+      navigate(`/events/${record.id}`);
     };
 
   
@@ -212,7 +212,7 @@ interface TablechildProps {
             <Button type="link" onClick={() => handleEdit(record)}>
               Изменить
             </Button>
-            <Button type="link" onClick={() => handleLinkClick(record.id)}>
+            <Button type="link" onClick={() => handleLinkClick(record)}>
               Подробнее
             </Button>
             <Popconfirm

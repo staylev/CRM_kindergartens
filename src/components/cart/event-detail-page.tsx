@@ -1,149 +1,65 @@
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import "../../styles/event-detail-page.css"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import { demoEventData } from "../../DemoData/demoData"
+import { useEvent } from "../../hooks/useEvent"
+import { EventDataDetails, events } from "../../types/event.type"
+import { message } from "antd"
 
-// Пример данных о событии
-const sampleEvent = {
-  id: "E001",
-  title: "Осенний утренник",
-  type: "Праздник",
-  description:
-    "Традиционный осенний утренник с участием детей старшей и подготовительной групп. Праздник включает в себя театрализованное представление, песни, танцы и игры на осеннюю тематику.",
-  status: "Запланировано",
-  date: "2023-10-25",
-  timeStart: "10:00",
-  timeEnd: "11:30",
-  location: "Музыкальный зал",
-  coverImage: "/placeholder.svg?height=300&width=600",
-  organizer: "Петрова Елена Ивановна",
-  groups: ["Старшая группа 'Солнышко'", "Подготовительная группа 'Звездочки'"],
-  participants: {
-    staff: [
-      {
-        id: "T001",
-        name: "Петрова Елена Ивановна",
-        position: "Музыкальный руководитель",
-        role: "Организатор",
-        photo: "/placeholder.svg?height=50&width=50",
-      },
-      {
-        id: "T002",
-        name: "Иванова Ольга Петровна",
-        position: "Воспитатель",
-        role: "Ведущая",
-        photo: "/placeholder.svg?height=50&width=50",
-      },
-      {
-        id: "T003",
-        name: "Сидорова Марина Александровна",
-        position: "Воспитатель",
-        role: "Помощник",
-        photo: "/placeholder.svg?height=50&width=50",
-      },
-    ],
-    children: 45,
-    parents: 30,
-  },
-  schedule: [
-    {
-      time: "09:30 - 10:00",
-      activity: "Подготовка зала, проверка оборудования",
-      responsible: "Петрова Е.И., Сидорова М.А.",
-    },
-    {
-      time: "10:00 - 10:10",
-      activity: "Вступительное слово, приветствие гостей",
-      responsible: "Иванова О.П.",
-    },
-    {
-      time: "10:10 - 10:40",
-      activity: "Театрализованное представление 'Осенняя сказка'",
-      responsible: "Петрова Е.И., дети старшей группы",
-    },
-    {
-      time: "10:40 - 11:00",
-      activity: "Песни и танцы на осеннюю тематику",
-      responsible: "Дети подготовительной группы",
-    },
-    {
-      time: "11:00 - 11:20",
-      activity: "Игры и конкурсы с родителями",
-      responsible: "Иванова О.П., Сидорова М.А.",
-    },
-    {
-      time: "11:20 - 11:30",
-      activity: "Заключительное слово, вручение подарков",
-      responsible: "Иванова О.П.",
-    },
-  ],
-  resources: [
-    {
-      category: "Оборудование",
-      items: [
-        { name: "Музыкальный центр", quantity: 1, status: "Подтверждено" },
-        { name: "Микрофоны", quantity: 2, status: "Подтверждено" },
-        { name: "Проектор", quantity: 1, status: "Требуется проверка" },
-      ],
-    },
-    {
-      category: "Декорации",
-      items: [
-        { name: "Осенние листья (комплект)", quantity: 3, status: "Подтверждено" },
-        { name: "Фигуры овощей и фруктов", quantity: 10, status: "В процессе подготовки" },
-        { name: "Баннер 'Осенний праздник'", quantity: 1, status: "Подтверждено" },
-      ],
-    },
-    {
-      category: "Костюмы",
-      items: [
-        { name: "Костюм Осени", quantity: 1, status: "Подтверждено" },
-        { name: "Костюмы овощей", quantity: 6, status: "В процессе подготовки" },
-        { name: "Костюмы животных", quantity: 4, status: "Требуется проверка" },
-      ],
-    },
-  ],
-  budget: {
-    planned: 15000,
-    spent: 8500,
-    items: [
-      { name: "Материалы для декораций", amount: 3500, status: "Оплачено" },
-      { name: "Ткани для костюмов", amount: 5000, status: "Оплачено" },
-      { name: "Подарки детям", amount: 6500, status: "Запланировано" },
-    ],
-  },
-  photos: [
-    { id: "P001", url: "/placeholder.svg?height=200&width=300", description: "Репетиция танца" },
-    { id: "P002", url: "/placeholder.svg?height=200&width=300", description: "Подготовка декораций" },
-    { id: "P003", url: "/placeholder.svg?height=200&width=300", description: "Примерка костюмов" },
-  ],
-  notes: [
-    {
-      id: "N001",
-      date: "2023-10-01",
-      author: "Петрова Е.И.",
-      text: "Репетиции идут по плану. Дети хорошо запоминают слова песен и движения танцев.",
-    },
-    {
-      id: "N002",
-      date: "2023-10-05",
-      author: "Иванова О.П.",
-      text: "Необходимо уточнить количество родителей, которые будут присутствовать на мероприятии.",
-    },
-    {
-      id: "N003",
-      date: "2023-10-10",
-      author: "Сидорова М.А.",
-      text: "Костюмы почти готовы, осталось доделать несколько элементов для костюмов овощей.",
-    },
-  ],
-}
+
 
 export default function EventDetailPage() {
-  const [event, setEvent] = useState(sampleEvent)
+  const [EventData, setEventData] = useState(demoEventData)
+  const [event, setEvent] = useState(EventData)
   const [activeTab, setActiveTab] = useState("info")
   const [editMode, setEditMode] = useState(false)
   const [newNote, setNewNote] = useState("")
+
+  const { id } = useParams<{ id: string }>(); // Получаем ID группы из UR
+  const  {EventListMutation} = useEvent()
+
+  useEffect(() => {
+    const fetchEventData = async () => {
+      try {
+        // Получаем список всех детских садов
+        const data = await EventListMutation.mutateAsync();
+        
+        // Находим детский сад по ID из URL
+        const foundEvent = data.data.find((kg: events) => kg.id === id);
+        
+        if (foundEvent) {  
+          // Форматируем данные из API в нужный нам формат
+          const formattedData:  EventDataDetails = {
+            ...demoEventData, // берем все демо-поля
+            id: foundEvent.id, 
+            title: foundEvent.attributes.title,
+            description: foundEvent.attributes.description,
+            timeStart: foundEvent.attributes.datetime_start,
+            timeEnd: foundEvent.attributes.datetime_end,
+            date: foundEvent.attributes.datetime_start
+            
+          }
+          setEventData(formattedData);
+        } else {
+          message.warning("Детский сад не найден, используются демо-данные");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+     
+        message.error("Ошибка при загрузке данных, используются демо-данные");
+      } finally {
+      
+      }
+    };
+
+    fetchEventData();
+  }, [id]);
+
+  useEffect(() => {
+    setEvent(EventData);
+  }, [EventData]);
+
 
   // Добавление новой заметки
   const handleAddNote = () => {
@@ -186,6 +102,8 @@ export default function EventDetailPage() {
     return event.budget.planned - spent
   }
 
+  const StarTime = new Date(event.timeStart).toTimeString().slice(0, 5);  
+  const EndTime = new Date(event.timeEnd).toTimeString().slice(0, 5); 
   const navigate = useNavigate()
 
   return (
@@ -222,7 +140,7 @@ export default function EventDetailPage() {
               <div className="event-time">
                 <i className="event-icon time-icon"></i>
                 <span>
-                  {event.timeStart} - {event.timeEnd}
+                  {StarTime} - {EndTime}
                 </span>
               </div>
               <div className="event-location">
@@ -326,18 +244,18 @@ export default function EventDetailPage() {
                 <div className="info-group">
                   <label>Дата проведения:</label>
                   {editMode ? (
-                    <input type="date" defaultValue={event.date} />
+                    <input type="date" defaultValue={event.date.toDateString()} />
                   ) : (
                     <span>{new Date(event.date).toLocaleDateString("ru-RU")}</span>
                   )}
                 </div>
                 <div className="info-group">
                   <label>Время начала:</label>
-                  {editMode ? <input type="time" defaultValue={event.timeStart} /> : <span>{event.timeStart}</span>}
+                  {editMode ? <input type="time" defaultValue={StarTime} /> : <span>{StarTime}</span>}
                 </div>
                 <div className="info-group">
                   <label>Время окончания:</label>
-                  {editMode ? <input type="time" defaultValue={event.timeEnd} /> : <span>{event.timeEnd}</span>}
+                  {editMode ? <input type="time" defaultValue={EndTime} /> : <span>{EndTime}</span>}
                 </div>
                 <div className="info-group">
                   <label>Место проведения:</label>
