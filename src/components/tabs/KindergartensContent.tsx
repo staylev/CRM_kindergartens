@@ -9,7 +9,7 @@ import { KindergartenData } from "../../types/kindergartens.type";
 type LayoutType = Parameters<typeof Form>[0]["layout"];
 
 /**
- * Компонент для отображения информации о детских садах
+ * Компонент для отображения информации о детск их садах
  */
 
 export const KindergartenContent = () => {

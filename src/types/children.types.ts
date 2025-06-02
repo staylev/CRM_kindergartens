@@ -33,3 +33,46 @@ export interface ChildData {
   type: string;
   attributes: ChildAttributes;
 }
+
+export interface ChildDataDetails {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+  gender: string;
+  group: string;
+  enrollmentDate: string;
+  photo: string;
+  parents: {
+    id: string;
+    relation: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    address: string;
+  }[];
+  emergencyContacts: {
+    name: string;
+    relation: string;
+    phone: string;
+  }[];
+  medicalInfo: {
+    bloodType: string;
+    allergies: string[];
+    medications: string[];
+    specialNeeds: string;
+    doctorName: string;
+    doctorPhone: string;
+  };
+  attendance: {
+    date: string;
+    status: string;
+    notes: string;
+  }[];
+  notes: {
+    date: string;
+    author: string;
+    text: string;
+  }[];
+}

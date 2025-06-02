@@ -1,83 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "../../styles/ChildCart.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { demoChildData } from "../../DemoData/demoData";
+import { useChild } from "../../hooks/useChild";
+import { ChildDataDetails, children } from "../../types/children.types";
+import { message } from "antd";
  
 
-// Sample data structure for a child
-const sampleChild = {
-  id: "CH001",
-  firstName: "Алексей",
-  lastName: "Смирнов",
-  dateOfBirth: "2019-05-12",
-  gender: "Мужской",
-  group: "Старшая группа",
-  enrollmentDate: "2022-09-01",
-  photo: "/placeholder.svg?height=150&width=150",
-  parents: [
-    {
-      id: "P001",
-      relation: "Мать",
-      firstName: "Елена",
-      lastName: "Смирнова",
-      phone: "+7 (912) 345-67-89",
-      email: "elena@example.com",
-      address: "ул. Ленина, 42, кв. 15",
-    },
-    {
-      id: "P002",
-      relation: "Отец",
-      firstName: "Игорь",
-      lastName: "Смирнов",
-      phone: "+7 (912) 987-65-43",
-      email: "igor@example.com",
-      address: "ул. Ленина, 42, кв. 15",
-    },
-  ],
-  emergencyContacts: [
-    {
-      name: "Ольга Петрова",
-      relation: "Бабушка",
-      phone: "+7 (912) 111-22-33",
-    },
-  ],
-  medicalInfo: {
-    bloodType: "A+",
-    allergies: ["Орехи", "Пыльца"],
-    medications: [],
-    specialNeeds: "Нет",
-    doctorName: "Иванова А.П.",
-    doctorPhone: "+7 (912) 555-44-33",
-  },
-  attendance: [
-    { date: "2023-10-01", status: "Присутствовал", notes: "" },
-    { date: "2023-10-02", status: "Присутствовал", notes: "" },
-    { date: "2023-10-03", status: "Отсутствовал", notes: "Болезнь" },
-    { date: "2023-10-04", status: "Отсутствовал", notes: "Болезнь" },
-    { date: "2023-10-05", status: "Присутствовал", notes: "" },
-  ],
-  notes: [
-    {
-      date: "2023-09-15",
-      author: "Воспитатель Петрова Н.И.",
-      text: "Алексей хорошо адаптируется к новой группе.",
-    },
-    {
-      date: "2023-09-28",
-      author: "Психолог Сидорова Е.В.",
-      text: "Проявляет интерес к творческим занятиям, особенно рисованию.",
-    },
-  ],
-};
-
 export default function ChildCart() {
-  const [child, setChild] = useState(sampleChild);
+  const [ChildData, setChildData] = useState(demoChildData);
+  const [child, setChild] = useState(ChildData);
   const [activeTab, setActiveTab] = useState("general");
   const [editMode, setEditMode] = useState(false);
   const [newNote, setNewNote] = useState("");
 
+  const { id } = useParams<{ id: string }>(); // Получаем ID группы из URL
+
+  const {ChildListMutation} = useChild()
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchChildData = async () => {
+      try {
+        // Получаем список всех детских садов
+        const data = await ChildListMutation.mutateAsync();
+        
+        // Находим детский сад по ID из URL
+        const foundChild = data.data.find((kg: children) => kg.id === id);
+        
+        if (foundChild) {  
+          // Форматируем данные из API в нужный нам формат
+          const formattedData:  ChildDataDetails = {
+            ...demoChildData, // берем все демо-поля
+            id: foundChild.id, 
+            firstName: foundChild.attributes.first_name,
+            lastName: foundChild.attributes.last_name,
+            dateOfBirth: foundChild.attributes.date_of_birth,
+          }
+          setChildData(formattedData);
+        } else {
+          message.warning("Детский сад не найден, используются демо-данные");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+     
+        message.error("Ошибка при загрузке данных, используются демо-данные");
+      } finally {
+      
+      }
+    };
+
+    fetchChildData();
+  }, [id]);
+
+  useEffect(() => {
+    setChild(ChildData);
+  }, [ChildData]);
 
   const handleAddNote = () => {
     if (newNote.trim()) {
@@ -96,17 +76,37 @@ export default function ChildCart() {
       setNewNote("");
     }
   };
+  // Функция для определения правильной формы слова "год"
+function getAgeWithCorrectWord(age: number): string {
+  if (age % 100 >= 11 && age % 100 <= 14) {
+    return `${age} лет`;
+  }
+  
+  switch (age % 10) {
+    case 1:
+      return `${age} год`;
+    case 2:
+    case 3:
+    case 4:
+      return `${age} года`;
+    default:
+      return `${age} лет`;
+  }
+}
 
   return (
     <div className="child-detail-container">
       <header className="child-detail-header">
         <div className="header-content">
           <h1>Информация о ребёнке</h1>
-         
+
           <div className="header-actions">
-          <button className="edit-button" onClick={() => navigate("/childrens")}>
-            Назад к списку
-          </button>
+            <button
+              className="edit-button"
+              onClick={() => navigate("/childrens")}
+            >
+              Назад к списку
+            </button>
             <button
               className="edit-button"
               onClick={() => setEditMode(!editMode)}
@@ -205,7 +205,7 @@ export default function ChildCart() {
                 <div className="info-group">
                   <label>Дата рождения:</label>
                   {editMode ? (
-                    <input type="date" defaultValue={child.dateOfBirth} />
+                    <input type="date" />
                   ) : (
                     <span>
                       {new Date(child.dateOfBirth).toLocaleDateString("ru-RU")}
@@ -215,12 +215,13 @@ export default function ChildCart() {
                 <div className="info-group">
                   <label>Возраст:</label>
                   <span>
-                    {Math.floor(
-                      (new Date().getTime() -
-                        new Date(child.dateOfBirth).getTime()) /
-                        (365.25 * 24 * 60 * 60 * 1000)
-                    )}{" "}
-                    лет
+                    {getAgeWithCorrectWord(
+                      Math.floor(
+                        (new Date().getTime() -
+                          new Date(child.dateOfBirth).getTime()) /
+                          (365.25 * 24 * 60 * 60 * 1000)
+                      )
+                    )}
                   </span>
                 </div>
                 <div className="info-group">

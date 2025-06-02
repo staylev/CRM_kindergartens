@@ -1,66 +1,64 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import "../../styles/kindergarten-detail.css"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import { useKindergartens } from "../../hooks/usekindergarten"
+import { Kindergartens, KindergartenDetaildata } from "../../types/kindergartens.type";
+import { demokindergartenData } from "../../DemoData/demoData"
+import { message } from "antd"
  
 // Демонстрационные данные
-const kindergartenData = {
-  id: 1,
-  name: "Детский сад 'Солнышко'",
-  address: "ул. Образования 123, Город",
-  phone: "+7 (555) 123-4567",
-  email: "info@solnyshko.ru",
-  director: "Анна Иванова",
-  foundedYear: 2010,
-  capacity: 120,
-  currentEnrollment: 98,
-  openingHours: "7:00 - 18:00",
-  description:
-    "Детский сад 'Солнышко' создает благоприятную среду, где дети могут учиться, играть и развиваться. Наша программа ориентирована на раннее развитие детей через творческие занятия, игры на свежем воздухе и образовательные программы.",
-  facilities: ["Игровая площадка", "Художественная студия", "Музыкальный зал", "Сад", "Библиотека", "Спортивный зал"],
-  programs: [
-    { name: "Раннее развитие (2-3 года)", students: 28 },
-    { name: "Младшая группа (3-4 года)", students: 32 },
-    { name: "Старшая группа (4-5 лет)", students: 38 },
-  ],
-  staff: [
-    { id: 1, name: "Анна Иванова", position: "Директор", photo: "/placeholder.svg?height=100&width=100" },
-    {
-      id: 2,
-      name: "Михаил Смирнов",
-      position: "Заместитель директора",
-      photo: "/placeholder.svg?height=100&width=100",
-    },
-    {
-      id: 3,
-      name: "Светлана Петрова",
-      position: "Старший воспитатель",
-      photo: "/placeholder.svg?height=100&width=100",
-    },
-    { id: 4, name: "Дмитрий Козлов", position: "Воспитатель", photo: "/placeholder.svg?height=100&width=100" },
-    { id: 5, name: "Елена Соколова", position: "Воспитатель", photo: "/placeholder.svg?height=100&width=100" },
-    { id: 6, name: "Роман Волков", position: "Воспитатель", photo: "/placeholder.svg?height=100&width=100" },
-  ],
-  events: [
-    { id: 1, name: "Родительское собрание", date: "2023-05-15", time: "16:00 - 18:00" },
-    { id: 2, name: "Летний фестиваль", date: "2023-06-20", time: "10:00 - 14:00" },
-    { id: 3, name: "Выпускной", date: "2023-07-10", time: "11:00 - 13:00" },
-  ],
-  photos: [
-    "/placeholder.svg?height=200&width=300",
-    "/placeholder.svg?height=200&width=300",
-    "/placeholder.svg?height=200&width=300",
-    "/placeholder.svg?height=200&width=300",
-  ],
-}
+
 
 const KindergartenDetail = () => {
   const [activeTab, setActiveTab] = useState("info")
+  const [kindergartenData, setKindergartenData] = useState(demokindergartenData);
 
-  const navigate = useNavigate()
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  
+ const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { kindergartensListMutation } = useKindergartens();
+
+  useEffect(() => {
+    const fetchKindergartenData = async () => {
+      try {
+        setIsLoading(true);
+        // Получаем список всех детских садов
+        const data = await kindergartensListMutation.mutateAsync();
+        
+        // Находим детский сад по ID из URL
+        const foundKindergarten = data.data.find((kg: Kindergartens) => kg.id === id);
+        
+        if (foundKindergarten) {
+          // Форматируем данные из API в нужный нам формат
+          const formattedData: KindergartenDetaildata = {
+            ...demokindergartenData, // берем все демо-поля
+            id: foundKindergarten.id,
+            name: foundKindergarten.attributes.title,
+            address: foundKindergarten.attributes.address,
+          };          
+          setKindergartenData(formattedData);
+        } else {
+          message.warning("Детский сад не найден, используются демо-данные");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+        setIsError(true);
+        message.error("Ошибка при загрузке данных, используются демо-данные");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchKindergartenData();
+  }, [id]);
 
   const renderTabContent = () => {
+    if (isLoading) return <div>Загрузка данных...</div>;
+    if (isError) return <div>Ошибка загрузки данных</div>;
     switch (activeTab) {
       case "info":
         return (

@@ -1,179 +1,63 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import "../../styles/group-detail-page.css"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import { demoGroupsData } from "../../DemoData/demoData"
+import { useGroups } from "../../hooks/useGroup"
+import { GroupDataDetail, Groups } from "../../types/Groups..type"
+import { message } from "antd"
+import { useKindergartens } from "../../hooks/usekindergarten"
 
 // Пример данных о группе
-const sampleGroup = {
-  id: "G001",
-  name: "Солнышко",
-  type: "Старшая группа",
-  ageRange: "5-6 лет",
-  capacity: 25,
-  currentEnrollment: 22,
-  roomNumber: "203",
-  description: "Группа для детей старшего дошкольного возраста с углубленным изучением творческих навыков.",
-  schedule: {
-    startTime: "08:00",
-    endTime: "18:00",
-    extendedHours: true,
-  },
-  staff: [
-    {
-      id: "T001",
-      firstName: "Елена",
-      lastName: "Петрова",
-      position: "Воспитатель",
-      photo: "/placeholder.svg?height=100&width=100",
-      education: "Высшее педагогическое",
-      experience: "12 лет",
-      phone: "+7 (912) 345-67-89",
-      email: "petrova@example.com",
-    },
-    {
-      id: "T002",
-      firstName: "Ольга",
-      lastName: "Иванова",
-      position: "Помощник воспитателя",
-      photo: "/placeholder.svg?height=100&width=100",
-      education: "Среднее специальное",
-      experience: "5 лет",
-      phone: "+7 (912) 987-65-43",
-      email: "ivanova@example.com",
-    },
-    {
-      id: "T003",
-      firstName: "Марина",
-      lastName: "Сидорова",
-      position: "Логопед",
-      photo: "/placeholder.svg?height=100&width=100",
-      education: "Высшее специальное",
-      experience: "8 лет",
-      phone: "+7 (912) 111-22-33",
-      email: "sidorova@example.com",
-      schedule: "Вторник, Четверг 10:00-12:00",
-    },
-  ],
-  children: [
-    {
-      id: "CH001",
-      firstName: "Алексей",
-      lastName: "Смирнов",
-      age: 5,
-      attendance: "Присутствует",
-      specialNeeds: false,
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-    {
-      id: "CH002",
-      firstName: "Мария",
-      lastName: "Козлова",
-      age: 6,
-      attendance: "Отсутствует",
-      specialNeeds: false,
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-    {
-      id: "CH003",
-      firstName: "Дмитрий",
-      lastName: "Новиков",
-      age: 5,
-      attendance: "Присутствует",
-      specialNeeds: true,
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-    // Добавим еще детей для демонстрации
-    {
-      id: "CH004",
-      firstName: "Анна",
-      lastName: "Морозова",
-      age: 5,
-      attendance: "Присутствует",
-      specialNeeds: false,
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-    {
-      id: "CH005",
-      firstName: "Игорь",
-      lastName: "Соколов",
-      age: 6,
-      attendance: "Присутствует",
-      specialNeeds: false,
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-  ],
-  dailySchedule: [
-    { time: "08:00 - 08:30", activity: "Прием детей" },
-    { time: "08:30 - 09:00", activity: "Утренняя гимнастика" },
-    { time: "09:00 - 09:30", activity: "Завтрак" },
-    { time: "09:30 - 10:30", activity: "Образовательная деятельность" },
-    { time: "10:30 - 12:00", activity: "Прогулка" },
-    { time: "12:00 - 12:30", activity: "Обед" },
-    { time: "12:30 - 15:00", activity: "Дневной сон" },
-    { time: "15:00 - 15:30", activity: "Полдник" },
-    { time: "15:30 - 16:30", activity: "Игры, самостоятельная деятельность" },
-    { time: "16:30 - 18:00", activity: "Прогулка, уход домой" },
-  ],
-  weeklySchedule: [
-    {
-      day: "Понедельник",
-      activities: [
-        { time: "09:30 - 10:00", name: "Развитие речи" },
-        { time: "10:10 - 10:40", name: "Физкультура" },
-      ],
-    },
-    {
-      day: "Вторник",
-      activities: [
-        { time: "09:30 - 10:00", name: "Математика" },
-        { time: "10:10 - 10:40", name: "Музыка" },
-      ],
-    },
-    {
-      day: "Среда",
-      activities: [
-        { time: "09:30 - 10:00", name: "Окружающий мир" },
-        { time: "10:10 - 10:40", name: "Физкультура" },
-      ],
-    },
-    {
-      day: "Четверг",
-      activities: [
-        { time: "09:30 - 10:00", name: "Рисование" },
-        { time: "10:10 - 10:40", name: "Развитие речи" },
-      ],
-    },
-    {
-      day: "Пятница",
-      activities: [
-        { time: "09:30 - 10:00", name: "Лепка/Аппликация" },
-        { time: "10:10 - 10:40", name: "Музыка" },
-      ],
-    },
-  ],
-  announcements: [
-    {
-      id: "A001",
-      date: "2023-10-15",
-      title: "Родительское собрание",
-      content: "Уважаемые родители! Приглашаем вас на родительское собрание, которое состоится 20 октября в 18:00.",
-      author: "Елена Петрова",
-    },
-    {
-      id: "A002",
-      date: "2023-10-10",
-      title: "Осенний утренник",
-      content:
-        "25 октября состоится осенний утренник. Просим подготовить костюмы и выучить стихи согласно розданным материалам.",
-      author: "Елена Петрова",
-    },
-  ],
-}
 
 export default function GroupDetailPage() {
-  const [group, setGroup] = useState(sampleGroup)
+  const [GroupData, setGroupData] = useState(demoGroupsData);
+  const [group, setGroup] = useState(GroupData)
   const [activeTab, setActiveTab] = useState("info")
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const { id } = useParams<{ id: string }>(); // Получаем ID группы из URL
+
+  const {GroupListMutation} = useGroups()
+  useEffect(() => {
+    const fetchGroupData = async () => {
+      try {
+        setIsLoading(true);
+        // Получаем список всех детских садов
+        const data = await GroupListMutation.mutateAsync();
+        
+        // Находим детский сад по ID из URL
+        const foundGroups = data.data.find((kg: Groups) => kg.id === id);
+        
+        if (foundGroups) {  
+          // Форматируем данные из API в нужный нам формат
+          const formattedData:  GroupDataDetail = {
+            ...demoGroupsData, // берем все демо-поля
+            id: foundGroups.id, 
+            name: foundGroups.attributes.title,
+          };          
+          setGroupData(formattedData);
+        } else {
+          message.warning("Детский сад не найден, используются демо-данные");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+        setIsError(true);
+        message.error("Ошибка при загрузке данных, используются демо-данные");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGroupData();
+  }, [id]);
+
+  useEffect(() => {
+    setGroup(GroupData);
+  }, [GroupData]);
+
   const [editMode, setEditMode] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [newAnnouncement, setNewAnnouncement] = useState({ title: "", content: "" })

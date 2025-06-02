@@ -70,7 +70,7 @@ const TableKindergarten: React.FC<TableKindergartenProps> = ({ refreshTable }) =
 
   const handleLinkClick = (record: Kindergartens) => {
     navigate(`/Kindergartens/${record.id}`, {
-      state: { kindergartenData: record } // Передаем данные записи через состояние навигации
+       // Передаем данные записи через состояние навигации
     });
   };
 

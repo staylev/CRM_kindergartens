@@ -4,7 +4,7 @@ import { Groups } from "../../types/Groups..type";
 import { useGroups } from "../../hooks/useGroup";
 import { useKindergartens } from "../../hooks/usekindergarten";
 import { useNavigate } from "react-router-dom";
-
+ 
 interface TableGroupProps {
     refreshTable: boolean; // Указываем, что компонент принимает пропс refreshTable
   }
@@ -83,8 +83,8 @@ interface TableGroupProps {
     
     const navigate = useNavigate();
 
-    const handleLinkClick = (id: string) => {
-      navigate(`/groups/${id}`);
+    const handleLinkClick = (record: Groups) => {
+      navigate(`/groups/${record.id}`);
     };
 
     // Открытие модального окна
@@ -105,6 +105,7 @@ interface TableGroupProps {
           Update: {
             attributes: {
               title: form.getFieldValue(["attributes", "title"]),
+              kindergarten_title: form.getFieldValue(["attributes", "kindergarten_title"]),
             },
             id: currentRecord?.id || "",
             type: "group"
@@ -143,7 +144,7 @@ interface TableGroupProps {
             <Button type="link" onClick={() => handleEdit(record)}>
               Изменить
             </Button>
-            <Button type="link" onClick={() => handleLinkClick(record.id)}>
+            <Button type="link" onClick={() => handleLinkClick(record)}>
               Подробнее
             </Button>
             <Popconfirm

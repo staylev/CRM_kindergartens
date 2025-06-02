@@ -27,4 +27,37 @@ export interface KindergartenData {
   attributes: KindergartenAttributes;
 }
 
+// types/kindergartens.type.ts
+export interface KindergartenDetaildata {
+  id: string; // Изменили с number на string, так как ID из URL - строка
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  director: string;
+  foundedYear: number;
+  capacity: number;
+  currentEnrollment: number;
+  openingHours: string;
+  description: string;
+  facilities: string[];
+  programs: {
+    name: string;
+    students: number;
+  }[];
+  staff: {
+    id: number;
+    name: string;
+    position: string;
+    photo: string;
+  }[];
+  events: {
+    id: number;
+    name: string;
+    date: string;
+    time: string;
+  }[];
+  photos: string[];
+}
+
  
