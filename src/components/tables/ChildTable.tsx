@@ -1,337 +1,291 @@
 import { Button, DatePicker, Form, Input, message, Modal, Popconfirm, Result, Select, Table, TableProps } from "antd";
-import { useChild } from "../../hooks/useChild";
-import { useGroups } from "../../hooks/useGroup";
 import { useEffect, useState } from "react";
-import { children } from "../../types/children.types";
+import { children, ListChild } from "../../types/children.types";
 import dayjs from 'dayjs';
 import { useNavigate } from "react-router-dom";
 
-
-
 interface TablechildProps {
-    refreshTable: boolean; // Указываем, что компонент принимает пропс refreshTable
-  }
-  
-  type LayoutType = Parameters<typeof Form>[0]["layout"];
-  
-  const ChildTable: React.FC<TablechildProps> = ({ refreshTable }) => {
+  refreshTable: boolean;
+}
+
+type LayoutType = Parameters<typeof Form>[0]["layout"];
+
+const ChildTable: React.FC<TablechildProps> = ({ refreshTable }) => {
   const navigate = useNavigate();
-    const {
-      ChildListMutation,
-      isPending,
-      isError,
-      isSuccess,
-      transformedData,
-      data,
-      error,
-      deleteChildMutation,
-      UpdateChildMutation,
-    } = useChild();
-  
-    const { GroupListMutation } = useGroups()
+  const [form] = Form.useForm();
+  const [formLayout, setFormLayout] = useState<LayoutType>("horizontal");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<children | null>(null);
+  const [childData, setChildData] = useState<ListChild>({
+    included: [],
+    meta: { count: 0, totalPages: 1 },
+    data: []
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [kindergartens, setKindergartens] = useState<any[]>([]);
 
-    const [form] = Form.useForm();
-    const [formLayout, setFormLayout] = useState<LayoutType>("horizontal");
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState<children | null>(null);
-  
  
-    // Загрузка данных при монтировании компонента
-    useEffect(() => {
-      ChildListMutation.mutate();
-    }, []);
-   
-    // Обновление данных при изменении refreshTable
-    useEffect(() => {
-      if (refreshTable) {
-        GroupListMutation.mutate();
+  useEffect(() => {
+    setIsLoading(true);
+    try {
+      const storedChildren = localStorage.getItem('children');
+      const storedkindergartens = localStorage.getItem('kindergartens');
+      const storedGroups = localStorage.getItem('groups');
+      
+      if (storedChildren) {
+        setChildData(JSON.parse(storedChildren));
       }
-    }, [refreshTable]);
-  
-    // Логирование данных после успешной загрузки
-    useEffect(() => {
-      if (isSuccess) {
-        console.log("Данные успешно загружены:", data);
+      if (storedkindergartens) {
+        setKindergartens(JSON.parse(storedkindergartens));
       }
-    }, [isSuccess, data]);
-  
-    // Логирование ошибки при загрузке данных
-    useEffect(() => {
-      if (isError) {
-        console.error("Ошибка при загрузке данных:", error);
+      if (storedGroups) {
+        setGroups(JSON.parse(storedGroups).data || []);
       }
-    }, [isError, error]);
-  
-    // Удаление записи
-    const handleDelete = async (id: string) => {
-      try {
-        await deleteChildMutation.mutateAsync(id);
-        message.success(`Запись ${id} удалена`);
-        ChildListMutation.mutate(); // Обновляем данные после удаления
-      } catch (error) {
-        message.error("Ошибка при удалении ребёнка");
-      }
-    };
+    } catch (error) {
+      message.error('Ошибка загрузки данных');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [refreshTable]);
 
-    const handleLinkClick = (record: children) => {
-      navigate(`/childrens/${record.id}`);
-    };
-  
-    // Редактирование записи
-    const handleEdit = (record: children) => {
-      setCurrentRecord(record); // Устанавливаем текущую запись для редактирования
-      form.setFieldsValue({
+  const handleDelete = (id: string) => {
+    try {
+      const updatedData = {
+        ...childData,
+        data: childData.data.filter(child => child.id !== id),
+        meta: {
+          ...childData.meta,
+          count: childData.meta.count - 1
+        }
+      };
+      localStorage.setItem('children', JSON.stringify(updatedData));
+      setChildData(updatedData);
+      message.success(`Запись ${id} удалена`);
+    } catch (error) {
+      message.error("Ошибка при удалении ребёнка");
+    }
+  };
+
+  const handleLinkClick = (record: children) => {
+    navigate(`/childrens/${record.id}`);
+  };
+
+  const handleEdit = (record: children) => {
+    setCurrentRecord(record);
+    form.setFieldsValue({
+      attributes: {
+        first_name: record.attributes.first_name,
+        last_name: record.attributes.last_name,
+        patronymic: record.attributes.patronymic,
+        date_of_birth: dayjs(record.attributes.date_of_birth),
+        group_id: record.relationships?.group?.data?.id || '',
+        kindergarten_title : record.attributes.kindergarten_title
+      },
+    });
+    setIsModalOpen(true);
+  };
+ 
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+
+      const updatedChild: children = {
+        id: currentRecord?.id || '',
+        type: 'children',
         attributes: {
-          first_name: record.attributes.first_name,
-          last_name: record.attributes.last_name,
-          patronymic: record.attributes.patronymic,
-          date_of_birth: record.attributes.date_of_birth,
+          ...currentRecord?.attributes,
+          first_name: values.attributes.first_name,
+          last_name: values.attributes.last_name,
+          patronymic: values.attributes.patronymic,
+          date_of_birth: values.attributes.date_of_birth.format('YYYY-MM-DD'),
+          group_title: currentRecord?.attributes.group_title || '',
+          kindergarten_title: values.attributes.kindergarten_title || '',
         },
-      }); // Заполняем форму данными записи
-      showModal(); // Открываем модальное окно
-    };
-  
-    // Открытие модального окна
-    const showModal = () => {
-      setIsModalOpen(true);
-    };
-  
-    // Закрытие модального окна
-    const handleCancel = () => {
+        relationships: {
+          group: {
+            data: {
+              id: values.attributes.group_id,
+              type: "group"
+            }
+          }
+        }
+      };
+
+      const updatedData: ListChild = {
+        ...childData,
+        data: childData.data.map(child => 
+          child.id === currentRecord?.id ? updatedChild : child
+        )
+      };
+
+      localStorage.setItem('children', JSON.stringify(updatedData));
+      setChildData(updatedData);
+      message.success("Данные успешно обновлены");
       setIsModalOpen(false);
-      form.resetFields(); // Сбрасываем форму
-    };
-  
-    // Сохранение данных формы
-    const handleOk = async () => {
-      try {
-        await UpdateChildMutation.mutateAsync({
-          Update: {
-            attributes: {
-              first_name: form.getFieldValue(["attributes", "first_name"]),
-              last_name: form.getFieldValue(["attributes", "last_name"]),
-              patronymic: form.getFieldValue(["attributes", "patronymic"]),
-              date_of_birth: form.getFieldValue(["attributes", "date_of_birth"]),
-              group_id:  form.getFieldValue(["attributes", "group_id"]),
-            },
-            id: currentRecord?.id || "",
-            type: "child"
-          },
-          id: currentRecord?.id || ""
-        });
-        message.success("Данные успешно обновлены");
-        setIsModalOpen(false);
-        ChildListMutation.mutate();
-        form.resetFields();
-      } catch (error) {
-        message.error("Ошибка при обновлении данных");
-      }
-    };
-
-    // Колонки таблицы
-    const columns: TableProps<children>["columns"] = [
-      {
-        title: "имя",
-        dataIndex: ["attributes", "first_name"],
-        key: "first_name",
-        sorter: (a, b) =>
-          a.attributes.first_name.localeCompare(b.attributes.first_name),
-        render: (text) => (
-          <a onClick={() => navigate(`/childrens/${text}`)}>{text}</a>
-        ),
-      },
-      {
-        title: "фамилия",
-        dataIndex: ["attributes", "last_name"],
-        key: "last_name",
-        sorter: (a, b) =>
-          a.attributes.last_name.localeCompare(b.attributes.last_name),
-        render: (text) => <a>{text}</a>,
-      },
-      {
-        title: "отчество",
-        dataIndex: ["attributes", "patronymic"],
-        key: "patronymic",
-        sorter: (a, b) =>
-          a.attributes.patronymic.localeCompare(b.attributes.patronymic),
-        render: (text) => <a>{text}</a>,
-      },
-      {
-        title: "дата рождения",
-        dataIndex: ["attributes", "date_of_birth"],
-        key: "date_of_birth",
-      },
-      {
-        title: "группа",
-        dataIndex: ["attributes", "group_title"],
-        key: "address",
-        render: (text) => <a>{text}</a>,
-      },
-      {
-        title: "Действия",
-        key: "action",
-        render: (_, record) => (
-          <div className="m-0">
-            <Button type="link" onClick={() => handleEdit(record)}>
-              Изменить
-            </Button>
-            <Button type="link" onClick={() => handleLinkClick(record)}>
-              Подробнее
-            </Button>
-            <Popconfirm
-              title="Удаление записи"
-              description="Вы уверены, что хотите удалить запись?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Да"
-              cancelText="Нет"
-            >
-              <Button danger>Удалить</Button>
-            </Popconfirm>
-          </div>
-        ),
-      },
-    ];
-
-    return (
-      <div>
-        {isPending && <Result title="Загрузка данных..." />}
-        {isError && (
-          <Result
-            status="error"
-            title="Ошибка загрузки"
-            subTitle={error?.message}
-          />
-        )}
-        {isSuccess && transformedData && (
-          <Table<children>
-            columns={columns}
-            dataSource={transformedData.data}
-            rowKey={(record) => record.id}
-            loading={isPending}
-            pagination={{
-              defaultPageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Всего ${total} записей`,
-            }}
-            locale={{
-              emptyText: "Нет данных",
-              triggerDesc: "Сортировка по убыванию",
-              triggerAsc: "Сортировка по возрастанию",
-              cancelSort: "Отменить сортировку",
-            }}
-          />
-        )}
-
-        <Modal
-          title="Редактировать запись"
-          open={isModalOpen}
-          onOk={handleOk}
-          onCancel={handleCancel}
-          okText="Сохранить"
-          cancelText="Отмена"
-        >
-          <Form
-            layout={formLayout}
-            form={form}
-            initialValues={{ layout: formLayout }}
-            onValuesChange={({ layout }) => setFormLayout(layout)}
-          >
-            <Form.Item
-              label="имя"
-              name={["attributes", "first_name"]}
-              rules={[
-                {
-                  required: true,
-                  message: "Пожалуйста, введите имя ребёнка",
-                },
-              ]}
-            >
-              <Input placeholder="Имя" />
-            </Form.Item>
-            <Form.Item
-              label="Фамилия"
-              name={["attributes", "last_name"]}
-              rules={[
-                {
-                  required: true,
-                  message: "Пожалуйста, введите фамилию ребёнка",
-                },
-              ]}
-            >
-              <Input placeholder="Фамилия" />
-            </Form.Item>
-            <Form.Item
-              label="Отчество"
-              name={["attributes", "patronymic"]}
-              rules={[
-                {
-                  required: true,
-                  message: "Пожалуйста, введите отчество ребёнка",
-                },
-              ]}
-            >
-              <Input placeholder="Отчество" />
-            </Form.Item>
-            <Form.Item
-              label="Дата рождения"
-              name={["attributes", "date_of_birth"]}
-              rules={[
-                {
-                  required: true,
-                  message: "Пожалуйста, введите дату рождения",
-                },
-              ]}
-              getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
-              })}
-            >
-              <DatePicker placeholder="Дата рождения" 
-           format="YYYY-MM-DD"
-           onChange={(date, dateString) => {
-             // Check if date is valid
-             if (date) {
-               form.setFieldsValue({
-                 attributes: {
-                   ...form.getFieldValue("attributes"),
-                   date_of_birth: dateString, // Set the formatted date string
-                 },
-               });
-             } else {
-               console.error("No date selected");
-             }
-           }}
-              />
-            </Form.Item>
-            <Form.Item
-              label="Группа"
-              name={["attributes", "group_id"]}
-              rules={[
-                {
-                  required: true,
-                  message: "Пожалуйста, выберите группу ребёнка",
-                },
-              ]}
-            >
-              <Select
-                style={{ width: 200 }}
-                optionFilterProp="label"
-                defaultValue={currentRecord?.attributes.group_title}
-              >
-                {GroupListMutation.data?.data &&
-                Array.isArray(GroupListMutation.data.data)
-                  ? GroupListMutation.data.data.map((item) => (
-                      <Select.Option key={item.id} value={item.id}>
-                        {item.attributes.title}
-                      </Select.Option>
-                    ))
-                  : null}
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </div>
-    );
-
+      form.resetFields();
+    } catch (error) {
+      message.error("Ошибка при обновлении данных");
     }
 
-    export default ChildTable;
+
+  };  const columns: TableProps<children>["columns"] = [
+    {
+      title: "Имя",
+      dataIndex: ["attributes", "first_name"],
+      key: "first_name",
+      sorter: (a, b) => a.attributes.first_name.localeCompare(b.attributes.first_name),
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Фамилия",
+      dataIndex: ["attributes", "last_name"],
+      key: "last_name",
+      sorter: (a, b) => a.attributes.last_name.localeCompare(b.attributes.last_name),
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Отчество",
+      dataIndex: ["attributes", "patronymic"],
+      key: "patronymic",
+      sorter: (a, b) => a.attributes.patronymic.localeCompare(b.attributes.patronymic),
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Дата рождения",
+      dataIndex: ["attributes", "date_of_birth"],
+      key: "date_of_birth",
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: "Группа",
+      dataIndex: ["attributes", "group_title"],
+      key: "group",
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Детский сад",
+      dataIndex: ["attributes", "kindergarten_title"],
+      key: "kindergarten_title",
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Действия",
+      key: "action",
+      render: (_, record) => (
+        <div className="m-0">
+          <Button type="link" onClick={() => handleEdit(record)}>
+            Изменить
+          </Button>
+          <Button type="link" onClick={() => handleLinkClick(record)}>
+            Подробнее
+          </Button>
+          <Popconfirm
+            title="Удаление записи"
+            description="Вы уверены, что хотите удалить запись?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Да"
+            cancelText="Нет"
+          >
+            <Button danger>Удалить</Button>
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      {isLoading && <Result title="Загрузка данных..." />}
+      {childData.data.length > 0 ? (
+        <Table<children>
+          columns={columns}
+          dataSource={childData.data}
+          rowKey={(record) => record.id}
+          loading={isLoading}
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Всего ${total} записей`,
+          }}
+        />
+      ) : (
+        <Result title="Нет данных" />
+      )}
+
+      <Modal
+        title="Редактировать запись"
+        open={isModalOpen}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        okText="Сохранить"
+        cancelText="Отмена"
+      >
+        <Form form={form} layout={formLayout}>
+          <Form.Item
+            label="Имя"
+            name={["attributes", "first_name"]}
+            rules={[{ required: true, message: "Пожалуйста, введите имя" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Фамилия"
+            name={["attributes", "last_name"]}
+            rules={[{ required: true, message: "Пожалуйста, введите фамилию" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Отчество"
+            name={["attributes", "patronymic"]}
+            rules={[{ required: true, message: "Пожалуйста, введите отчество" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Дата рождения"
+            name={["attributes", "date_of_birth"]}
+            rules={[{ required: true, message: "Пожалуйста, выберите дату" }]}
+          >
+            <DatePicker format="YYYY-MM-DD" />
+          </Form.Item>
+          <Form.Item
+            label="Группа"
+            name={["attributes", "group_id"]}
+            rules={[{ required: true, message: "Пожалуйста, выберите группу" }]}
+          >
+            <Select>
+              {groups.map(group => (
+                <Select.Option key={group.id} value={group.id}>
+                  {group.attributes.title}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Детский сад"
+            name={["attributes", "kindergarten_title"]}
+            rules={[{ required: true, message: "Пожалуйста, выберите Детский сад" }]}
+          >
+            <Select>
+              {kindergartens.map(kindergarten => (
+                <Select.Option key={kindergarten.id}>
+                  {kindergarten.attributes.title}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default ChildTable;

@@ -1,174 +1,168 @@
-import { useState } from "react";
-import { DatePicker, Form, Select } from "antd";
-import { useChild } from "../../hooks/useChild";
-import { ChildData } from "../../types/children.types";
-import { Button, Input, message, Modal } from "antd";
-import { useGroups } from "../../hooks/useGroup";
+import { useEffect, useState } from "react";
+import { DatePicker, Form, Input, Button, message, Modal, Select } from "antd";
 import ChildTable from "../tables/ChildTable";
-import dayjs from 'dayjs';
+
 type LayoutType = Parameters<typeof Form>[0]["layout"];
-/**
- * Компонент для отображения информации о группах
- */
+
 export const ChildrenContent = () => {
   const [refreshTable, setRefreshTable] = useState(false);
-  const { addChildMutation, ChildListMutation } = useChild();
-
   const [form] = Form.useForm();
   const [formLayout, setFormLayout] = useState<LayoutType>("horizontal");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [kindergartens, setKindergartens] = useState<any[]>([]);
 
-  const onFinish = async (values: ChildData) => {
+  useEffect(() => {
+    const storedGroups = localStorage.getItem('groups');
+    if (storedGroups) {
+      setGroups(JSON.parse(storedGroups).data || []);
+    }
+    console.log(groups);
+    const storedkindergartens = localStorage.getItem('kindergartens');
+    if (storedkindergartens) {
+      setKindergartens(JSON.parse(storedkindergartens));
+    }
+ 
+  }, []);
+
+  const onFinish = (values: any) => {
     try {
-      await addChildMutation.mutateAsync(values);
+      const storedChildren = localStorage.getItem('children');
+      const childrenData: any = storedChildren ? JSON.parse(storedChildren) : {
+        included: [],
+        meta: { count: 0, totalPages: 1 },
+        data: []
+      };
+
+      const selectedGroup = groups.find(g => g.id === values.attributes.group_id);
+      const selectedKindergarten = kindergartens.find(k => k.id === values.attributes.kindergarten_title);
+      const newChild = {
+        type: "child",
+        id: Date.now().toString(),
+        attributes: {
+          first_name: values.attributes.first_name,
+          last_name: values.attributes.last_name,
+          patronymic: values.attributes.patronymic,
+          date_of_birth: values.attributes.date_of_birth.format('YYYY-MM-DD'),
+          group_title: selectedGroup?.attributes?.title || '',
+          gender: '',
+          image: '',
+          kindergarten_title: selectedKindergarten?.attributes?.title || '',
+          kindergartens_id: selectedKindergarten?.id || '',
+        },
+        relationships: {
+          group: {
+            data: {
+              id: values.attributes.group_id,
+              type: "group"
+            }
+          }
+        }
+      };
+      console.log(newChild);
+
+      const updatedData = {
+        ...childrenData,
+        data: [...childrenData.data, newChild],
+        meta: {
+          ...childrenData.meta,
+          count: childrenData.meta.count + 1
+        }
+      };
+
+      localStorage.setItem('children', JSON.stringify(updatedData));
       message.success('Ребёнок успешно добавлен');
       form.resetFields();
-      setRefreshTable((prev) => !prev);
-      ChildListMutation.mutate();
+      setRefreshTable(prev => !prev);
+      setIsModalOpen(false);
     } catch (error) {
       message.error('Ошибка при добавлении ребёнка');
     }
   };
-  const onFormLayoutChange = ({ layout }: { layout: LayoutType }) => {
-    setFormLayout(layout);
-  };
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { GroupListMutation } = useGroups()
 
   const showModal = () => {
     setIsModalOpen(true);
-    GroupListMutation.mutate();
   };
-  
+
   const handleOk = () => {
-    const values = form.getFieldsValue();
-    if (!values.attributes?.first_name || !values.attributes?.last_name || !values.attributes?.patronymic || !values.attributes?.date_of_birth || !values.attributes?.group_id) {
-      message.error('Пожалуйста, заполните все поля');
-      return; // Прерываем выполнение функции, если какое-то поле не заполнено
-    }
-    form.submit(); 
-    setIsModalOpen(false);
+    form.submit();
   };
+
   const handleCancel = () => {
     setIsModalOpen(false);
   };
 
- 
   return (
     <div className="container-fluid px-4">
       <h1 className="mt-4">Дети</h1>
       <div className="pt-5">
-        <Button
-          className="mb-5 float-end"
-          color="default"
-          variant="solid"
-          onClick={showModal}
-        >
+        <Button className="mb-5 float-end" onClick={showModal}>
           Добавить
         </Button>
         <ChildTable refreshTable={refreshTable} />
       </div>
 
       <Modal
-        title="Добавить запись"
+        title="Добавить ребёнка"
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
         okText="Добавить"
         cancelText="Отмена"
       >
-        <Form
-          onFinish={onFinish}
-          layout={formLayout}
-          form={form}
-          initialValues={{ layout: formLayout }}
-          onValuesChange={onFormLayoutChange}
-        >
+        <Form form={form} onFinish={onFinish} layout={formLayout}>
           <Form.Item
             label="Имя"
             name={["attributes", "first_name"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите имя ребёнка",
-              },
-            ]}
+            rules={[{ required: true, message: "Введите имя" }]}
           >
-            <Input placeholder="Имя" />
+            <Input />
           </Form.Item>
           <Form.Item
             label="Фамилия"
             name={["attributes", "last_name"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите фамилию ребёнка",
-              },
-            ]}
+            rules={[{ required: true, message: "Введите фамилию" }]}
           >
-            <Input placeholder="Фамилия" />
+            <Input />
           </Form.Item>
           <Form.Item
             label="Отчество"
             name={["attributes", "patronymic"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите отчество ребёнка",
-              },
-            ]}
+            rules={[{ required: true, message: "Введите отчество" }]}
           >
-            <Input placeholder="отчество" />
+            <Input />
           </Form.Item>
           <Form.Item
             label="Дата рождения"
             name={["attributes", "date_of_birth"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите дату рождения ребёнка",
-              },
-            ]}
-            getValueProps={(value) => ({
-              value: value ? dayjs(value) : "",
-            })}
+            rules={[{ required: true, message: "Выберите дату" }]}
           >
-            <DatePicker
-              format="YYYY-MM-DD"
-              onChange={(date, dateString) => {
-                // Check if date is valid
-                if (date) {
-                  form.setFieldsValue({
-                    attributes: {
-                      ...form.getFieldValue("attributes"),
-                      date_of_birth: dateString, // Set the formatted date string
-                    },
-                  });
-                } else {
-                  console.error("No date selected");
-                }
-              }}
-            />
+            <DatePicker format="YYYY-MM-DD" />
           </Form.Item>
           <Form.Item
-            label="группа"
+            label="Группа"
             name={["attributes", "group_id"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите группу ребёнка",
-              },
-            ]}
+            rules={[{ required: true, message: "Выберите группу" }]}
           >
-            <Select style={{ width: 200 }} optionFilterProp="label">
-              {GroupListMutation.data?.data &&
-              Array.isArray(GroupListMutation.data.data)
-                ? GroupListMutation.data.data.map((item) => (
-                    <Select.Option key={item.id} value={item.id}>
-                      {item.attributes.title}
-                    </Select.Option>
-                  ))
-                : null}
+            <Select>
+              {groups.map(group => (
+                <Select.Option key={group.id} value={group.id}>
+                  {group.attributes.title}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Детский сад"
+            name={["attributes", "kindergarten_title"]}
+            rules={[{ required: true, message: "Пожалуйста, выберите Детский сад" }]}
+          >
+            <Select>
+              {kindergartens.map((kindergarten)=> (
+                <Select.Option key={kindergarten.id}>
+                  {kindergarten.attributes.title}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
         </Form>

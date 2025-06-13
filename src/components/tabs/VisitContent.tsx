@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import "../../styles/attendance-system.css"
 
+
 // Типы данных
 interface Child {
   id: number

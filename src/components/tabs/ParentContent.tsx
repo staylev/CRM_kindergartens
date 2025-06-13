@@ -1,55 +1,67 @@
 import { Button, Form, Input, Modal, Select } from "antd";
-import { useState } from "react";
-import { useChild } from "../../hooks/useChild";
+import { useState, useEffect } from "react";
 import ParentTable from "../tables/ParentTable";
 
- 
 type LayoutType = Parameters<typeof Form>[0]["layout"];
-/**
- * Компонент для отображения информации о группах
- */
-export const ParentContent  = () => {
-//   const [refreshTable, setRefreshTable] = useState(false);
-  const { ChildListMutation } = useChild();
 
+export const ParentContent = () => {
   const [form] = Form.useForm();
   const [formLayout, setFormLayout] = useState<LayoutType>("horizontal");
-
-//   const onFinish = async (values: ChildData) => {
-//     try {
-//       await addChildMutation.mutateAsync(values);
-//       message.success('Ребёнок успешно добавлен');
-//       form.resetFields();
-//       setRefreshTable((prev) => !prev);
-//       ChildListMutation.mutate();
-//     } catch (error) {
-//       message.error('Ошибка при добавлении ребёнка');
-//     }
-//   };
-//   const onFormLayoutChange = ({ layout }: { layout: LayoutType }) => {
-//     setFormLayout(layout);
-//   };
-
   const [isModalOpen, setIsModalOpen] = useState(false);
-//   const { GroupListMutation } = useGroups()
+  const [childrenOptions, setChildrenOptions] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0)
 
+  useEffect(() => {
+    loadChildren();
+  }, []);
+
+  const loadChildren = () => {
+    const childrenData = localStorage.getItem("children");
+    if (!childrenData) return;
+  
+    try {
+      const parsedData = JSON.parse(childrenData);
+      const childrenList = parsedData.data || parsedData;
+  
+      setChildrenOptions(
+        childrenList.map((child: any) => ({
+          id: child.id,
+          last_name: child.attributes?.last_name || "Без фамилии"
+        }))
+      );
+    } catch (e) {
+      console.error("Ошибка парсинга детей", e);
+    }
+  };
   const showModal = () => {
     setIsModalOpen(true);
-    ChildListMutation.mutate();
   };
+
   
-  const handleOk = () => {
-//     const values = form.getFieldsValue();
-//     if (!values.attributes?.first_name || !values.attributes?.last_name || !values.attributes?.patronymic || !values.attributes?.date_of_birth || !values.attributes?.group_id) {
-//       message.error('Пожалуйста, заполните все поля');
-//       return; // Прерываем выполнение функции, если какое-то поле не заполнено
-//     }
-//     form.submit(); 
-//     setIsModalOpen(false);
-//   };
-  }
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      const parents = localStorage.getItem('parents') ? JSON.parse(localStorage.getItem('parents')!) : [];
+      
+      const newParent = { 
+        ...values, 
+        tg: Date.now().toString(),
+        children_ids: values.children || [], // Сохраняем только ID детей как масси
+      };
+      
+      localStorage.setItem('parents', JSON.stringify([...parents, newParent]));
+      setIsModalOpen(false);
+      form.resetFields();
+   
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Validation failed:', error);
+    }
+  };
+
   const handleCancel = () => {
     setIsModalOpen(false);
+    form.resetFields();
   };
 
   return (
@@ -64,7 +76,7 @@ export const ParentContent  = () => {
         >
           Добавить
         </Button>
-        <ParentTable refreshTable={false}  />
+        <ParentTable refreshTable={refreshKey} />
       </div>
 
       <Modal
@@ -76,103 +88,70 @@ export const ParentContent  = () => {
         cancelText="Отмена"
       >
         <Form
-          onFinish={()=>{}}///onFinish
-          layout={formLayout}
           form={form}
+          layout={formLayout}
           initialValues={{ layout: formLayout }}
-            onValuesChange={({ layout }) => setFormLayout(layout)}
+          onValuesChange={({ layout }) => layout && setFormLayout(layout)}
         >
           <Form.Item
             label="Telegram ID"
-            // name={["attributes", "tg_id"]}
+            name="tg"
             rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите Telegram ID",
-              },
+              { required: true, message: "Пожалуйста, введите Telegram ID" },
             ]}
           >
             <Input placeholder="Telegram ID" />
           </Form.Item>
           <Form.Item
-            label="имя пользователя" 
-            //name={["attributes", "username"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите имя пользователя",
-              },
-            ]}
-          >
-            <Input placeholder="имя пользователя" />
-          </Form.Item>
-          <Form.Item
             label="Имя"
-            // name={["attributes", "patronymic"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите имя "
-              },
-            ]}
+            name="frist_name"
+            rules={[{ required: true, message: "Пожалуйста, введите имя" }]}
           >
-            <Input placeholder="имя" />
+            <Input placeholder="Имя" />
           </Form.Item>
           <Form.Item
             label="Фамилия"
-            // name={["attributes", "patronymic"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите фамилию "
-              },
-            ]}
+            name="last_name"
+            rules={[{ required: true, message: "Пожалуйста, введите фамилию" }]}
           >
-            <Input placeholder="фамилия" />
+            <Input placeholder="Фамилия" />
           </Form.Item>
           <Form.Item
             label="Телефон"
-            // name={["attributes", "patronymic"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите телефон "
-              },
-            ]}
+            name="number_phone"
+            rules={[{ required: true, message: "Пожалуйста, введите телефон" }]}
           >
-            <Input type="phone" placeholder="телефон" />
+            <Input type="tel" placeholder="Телефон" />
           </Form.Item>
           <Form.Item
-            label="email"
-            // name={["attributes", "patronymic"]}
+            label="Email"
+            name="email"
             rules={[
               {
                 required: true,
-                message: "Пожалуйста, введите электронную почту "
+                message: "Пожалуйста, введите электронную почту",
               },
             ]}
           >
-            <Input type="mail" placeholder="электронная почта" />
+            <Input type="email" placeholder="Электронная почта" />
           </Form.Item>
           <Form.Item
             label="Дети"
-            name={["attributes", "group_id"]}
+            name="children"
             rules={[
-              {
-                required: true,
-                message: "Пожалуйста, добавьте ребёнка",
-              },
+              { required: true, message: "Пожалуйста, добавьте ребёнка" },
             ]}
           >
-            <Select  mode="multiple" style={{ width: 200 }} optionFilterProp="label">
-              {ChildListMutation.data?.data &&
-              Array.isArray(ChildListMutation.data.data)
-                ? ChildListMutation.data.data.map((item) => (
-                    <Select.Option key={item.id} value={item.id}>
-                      {item.attributes.last_name}
-                    </Select.Option>
-                  ))
-                : null}
+            <Select
+              mode="multiple"
+              style={{ width: "100%" }}
+              optionFilterProp="label"
+            >
+              {childrenOptions.map((item) => (
+                <Select.Option key={item.id} value={item.id}>
+                  {item.last_name}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
         </Form>

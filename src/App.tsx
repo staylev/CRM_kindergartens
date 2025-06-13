@@ -5,7 +5,7 @@ import MainHome from './components/home/MainHome';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { KindergartenContent } from './components/tabs/KindergartensContent';
-import { GroupsContent } from './components/tabs/GroupsContent';
+import GroupsContent  from './components/tabs/GroupsContent';
 import { useEffect } from 'react';
 import { startAccessTokenCheck } from './api/auth.api';
 import { ChildrenContent } from './components/tabs/ChildrenContent';

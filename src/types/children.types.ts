@@ -7,6 +7,7 @@ export interface children {
     patronymic: string;
     date_of_birth: Date;
     group_title: string;
+    kindergarten_title: string;
   };
   id: string;
 }
@@ -25,7 +26,11 @@ export interface ChildAttributes {
     last_name: string;
     patronymic: string;
     date_of_birth: Date;
-    group_id: string;
+    group_title: string;
+    gender: string;
+    image: string;
+    kindergarten_title: string;
+
 }
 
 export interface ChildData {
@@ -34,45 +39,13 @@ export interface ChildData {
   attributes: ChildAttributes;
 }
 
-export interface ChildDataDetails {
+export interface ChildNotes {
   id: string;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: Date;
-  gender: string;
-  group: string;
-  enrollmentDate: string;
-  photo: string;
-  parents: {
-    id: string;
-    relation: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-    address: string;
-  }[];
-  emergencyContacts: {
-    name: string;
-    relation: string;
-    phone: string;
-  }[];
-  medicalInfo: {
-    bloodType: string;
-    allergies: string[];
-    medications: string[];
-    specialNeeds: string;
-    doctorName: string;
-    doctorPhone: string;
+  type: string;
+  attributes: {
+    note: string;
+    date: Date;
   };
-  attendance: {
-    date: string;
-    status: string;
-    notes: string;
-  }[];
-  notes: {
-    date: string;
-    author: string;
-    text: string;
-  }[];
+   
 }
+ 

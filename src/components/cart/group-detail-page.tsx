@@ -1,109 +1,186 @@
-"use client"
 
-import { useEffect, useState } from "react"
-import "../../styles/group-detail-page.css"
-import { useNavigate, useParams } from "react-router-dom"
-import { demoGroupsData } from "../../DemoData/demoData"
-import { useGroups } from "../../hooks/useGroup"
-import { GroupDataDetail, Groups } from "../../types/Groups..type"
-import { message } from "antd"
-import { useKindergartens } from "../../hooks/usekindergarten"
-
-// Пример данных о группе
-
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Input, message } from "antd";
+import "../../styles/group-detail-page.css";
+import { Groups } from "../../types/Groups..type";
+import Table, { ColumnsType } from "antd/es/table";
 export default function GroupDetailPage() {
-  const [GroupData, setGroupData] = useState(demoGroupsData);
-  const [group, setGroup] = useState(GroupData)
-  const [activeTab, setActiveTab] = useState("info")
-
+  const [group, setGroup] = useState<Groups | null>(null);
+  const [activeTab, setActiveTab] = useState("info");
   const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const { id } = useParams<{ id: string }>(); // Получаем ID группы из URL
+  const [editMode, setEditMode] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [children, setChildren] = useState<Child[]>([]);
 
-  const {GroupListMutation} = useGroups()
+
+  // Добавляем интерфейс для ребенка
+interface Child {
+  id: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+}
+useEffect(() => {
+  if (group) {
+    setChildren(getChildrenInGroup(group.id));
+  }
+}, [group]);
+ 
+// Получаем список детей из localStorage
+const getChildrenInGroup = (groupId: string): Child[] => {
+  const childrenData = localStorage.getItem('children');
+  if (!childrenData) return [];
+  
+  try {
+    const childrenList = JSON.parse(childrenData);
+    return childrenList.data
+      .filter((child: any) => child.relationships?.group?.data?.id === groupId)
+      .map((child: any) => ({
+        id: child.id,
+        firstName: child.attributes.first_name,
+        lastName: child.attributes.last_name,
+        age: calculateAge(child.attributes.date_of_birth),
+      }));
+  } catch (e) {
+    console.error("Ошибка при загрузке детей", e);
+    return [];
+  }
+};
+
+// Функция для расчета возраста
+const calculateAge = (birthDate: string): number => {
+  const birth = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
+
+// Колонки для таблицы
+const columns: ColumnsType<Child> = [
+  {
+    title: 'ФИО',
+    dataIndex: 'lastName',
+    key: 'name',
+    render: (_, record) => `${record.lastName} ${record.firstName}`,
+    sorter: (a, b) => a.lastName.localeCompare(b.lastName),
+  },
+  {
+    title: 'Возраст',
+    dataIndex: 'age',
+    key: 'age',
+    render: (age) => `${age} ${getAgeWord(age)}`,
+    sorter: (a, b) => a.age - b.age,
+  },
+  {
+    title: 'Действия',
+    key: 'actions',
+    render: (_, record) => (
+      <a onClick={() => navigate(`/childrens/${record.id}`)}>Подробнее</a>
+    ),
+  },
+];
+
+// Функция для правильного склонения слова "год"
+const getAgeWord = (age: number): string => {
+  if (age % 100 >= 11 && age % 100 <= 14) {
+    return 'лет';
+  }
+  
+  switch (age % 10) {
+    case 1: return 'год';
+    case 2:
+    case 3:
+    case 4: return 'года';
+    default: return 'лет';
+  }
+};
+
   useEffect(() => {
-    const fetchGroupData = async () => {
+    const loadGroupData = () => {
       try {
         setIsLoading(true);
-        // Получаем список всех детских садов
-        const data = await GroupListMutation.mutateAsync();
+        const storedGroups = localStorage.getItem("groups");
         
-        // Находим детский сад по ID из URL
-        const foundGroups = data.data.find((kg: Groups) => kg.id === id);
-        
-        if (foundGroups) {  
-          // Форматируем данные из API в нужный нам формат
-          const formattedData:  GroupDataDetail = {
-            ...demoGroupsData, // берем все демо-поля
-            id: foundGroups.id, 
-            name: foundGroups.attributes.title,
-          };          
-          setGroupData(formattedData);
+        if (storedGroups) {
+          const groupsData = JSON.parse(storedGroups);
+          const foundGroup = groupsData.data.find((g: Groups) => g.id === id);
+          
+          if (foundGroup) {
+            setGroup(foundGroup);
+          } else {
+            message.error("Группа не найдена");
+            navigate("/groups");
+          }
         } else {
-          message.warning("Детский сад не найден, используются демо-данные");
+          message.error("Данные о группах не найдены");
+          navigate("/groups");
         }
       } catch (error) {
-        console.error("Ошибка при загрузке данных:", error);
-        setIsError(true);
-        message.error("Ошибка при загрузке данных, используются демо-данные");
+        console.error("Ошибка загрузки данных:", error);
+        message.error("Ошибка загрузки данных");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchGroupData();
-  }, [id]);
+    loadGroupData();
+  }, [id, navigate]);
 
-  useEffect(() => {
-    setGroup(GroupData);
-  }, [GroupData]);
-
-  const [editMode, setEditMode] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [newAnnouncement, setNewAnnouncement] = useState({ title: "", content: "" })
-
-  // Фильтрация детей по поисковому запросу
-  const filteredChildren = group.children.filter(
-    (child) =>
-      child.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      child.lastName.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  // Добавление нового объявления
-  const handleAddAnnouncement = () => {
-    if (newAnnouncement.title.trim() && newAnnouncement.content.trim()) {
-      const updatedGroup = {
-        ...group,
-        announcements: [
-          {
-            id: `A00${group.announcements.length + 1}`,
-            date: new Date().toISOString().split("T")[0],
-            title: newAnnouncement.title,
-            content: newAnnouncement.content,
-            author: "Текущий пользователь",
-          },
-          ...group.announcements,
-        ],
+  const handleSave = () => {
+    if (!group) return;
+    
+    try {
+      const storedGroups = localStorage.getItem("groups");
+      if (storedGroups) {
+        const groupsData = JSON.parse(storedGroups);
+        const updatedData = {
+          ...groupsData,
+          data: groupsData.data.map((g: Groups) => 
+            g.id === group.id ? group : g
+          )
+        };
+        
+        localStorage.setItem("groups", JSON.stringify(updatedData));
+        message.success("Изменения сохранены");
+        setEditMode(false);
       }
-      setGroup(updatedGroup)
-      setNewAnnouncement({ title: "", content: "" })
+    } catch (error) {
+      console.error("Ошибка сохранения:", error);
+      message.error("Ошибка сохранения данных");
     }
+  };
+
+  if (isLoading) {
+    return <div className="loading">Загрузка...</div>;
   }
- const navigate = useNavigate()
+
+  if (!group) {
+    return <div className="error">Группа не найдена</div>;
+  }
   return (
-  
     <div className="group-detail-container">
       <header className="group-detail-header">
         <div className="header-content">
           <h1>Информация о группе</h1>
           <div className="header-actions">
             <button className="edit-button" onClick={() => navigate("/groups")}>
-                назад к списку 
+              Назад к списку
             </button>
-            <button className="edit-button" onClick={() => setEditMode(!editMode)}>
+            <button
+              className="edit-button"
+              onClick={editMode ? handleSave : () => setEditMode(true)}
+            >
               {editMode ? "Сохранить" : "Редактировать"}
             </button>
-            <button className="print-button">Печать</button>
           </div>
         </div>
       </header>
@@ -111,20 +188,8 @@ export default function GroupDetailPage() {
       <div className="group-detail-content">
         <div className="group-sidebar">
           <div className="group-info-container">
-            <h2>{group.name}</h2>
-            <p className="group-id">ID: {group.id}</p>
-            <p className="group-type">{group.type}</p>
-            <div className="group-capacity">
-              <div className="capacity-bar">
-                <div
-                  className="capacity-fill"
-                  style={{ width: `${(group.currentEnrollment / group.capacity) * 100}%` }}
-                ></div>
-              </div>
-              <p>
-                {group.currentEnrollment} / {group.capacity} детей
-              </p>
-            </div>
+            <h2>{group.attributes.title}</h2>
+            <p className="group-type">{group.attributes.type_group}</p>
           </div>
 
           <nav className="group-tabs">
@@ -135,28 +200,12 @@ export default function GroupDetailPage() {
               Общая информация
             </button>
             <button
-              className={`tab-button ${activeTab === "staff" ? "active" : ""}`}
-              onClick={() => setActiveTab("staff")}
-            >
-              Персонал
-            </button>
-            <button
-              className={`tab-button ${activeTab === "children" ? "active" : ""}`}
+              className={`tab-button ${
+                activeTab === "children" ? "active" : ""
+              }`}
               onClick={() => setActiveTab("children")}
             >
               Список детей
-            </button>
-            <button
-              className={`tab-button ${activeTab === "schedule" ? "active" : ""}`}
-              onClick={() => setActiveTab("schedule")}
-            >
-              Расписание
-            </button>
-            <button
-              className={`tab-button ${activeTab === "announcements" ? "active" : ""}`}
-              onClick={() => setActiveTab("announcements")}
-            >
-              Объявления
             </button>
           </nav>
         </div>
@@ -168,135 +217,102 @@ export default function GroupDetailPage() {
               <div className="info-grid">
                 <div className="info-group">
                   <label>Название группы:</label>
-                  {editMode ? <input type="text" defaultValue={group.name} /> : <span>{group.name}</span>}
+                  {editMode ? (
+                    <input
+                      value={group.attributes.title}
+                      onChange={(e) =>
+                        setGroup({
+                          ...group,
+                          attributes: {
+                            ...group.attributes,
+                            title: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  ) : (
+                    <span>{group.attributes.title}</span>
+                  )}
                 </div>
+
                 <div className="info-group">
                   <label>Тип группы:</label>
                   {editMode ? (
-                    <select defaultValue={group.type}>
+                    <select
+                      value={group.attributes.type_group}
+                      onChange={(e) =>
+                        setGroup({
+                          ...group,
+                          attributes: {
+                            ...group.attributes,
+                            type_group: e.target.value,
+                          },
+                        })
+                      }
+                    >
                       <option value="Ясельная группа">Ясельная группа</option>
                       <option value="Младшая группа">Младшая группа</option>
                       <option value="Средняя группа">Средняя группа</option>
                       <option value="Старшая группа">Старшая группа</option>
-                      <option value="Подготовительная группа">Подготовительная группа</option>
+                      <option value="Подготовительная группа">
+                        Подготовительная группа
+                      </option>
                     </select>
                   ) : (
-                    <span>{group.type}</span>
+                    <span>{group.attributes.type_group}</span>
                   )}
                 </div>
-                <div className="info-group">
-                  <label>Возрастной диапазон:</label>
-                  {editMode ? <input type="text" defaultValue={group.ageRange} /> : <span>{group.ageRange}</span>}
-                </div>
+
                 <div className="info-group">
                   <label>Номер кабинета:</label>
-                  {editMode ? <input type="text" defaultValue={group.roomNumber} /> : <span>{group.roomNumber}</span>}
-                </div>
-                <div className="info-group">
-                  <label>Вместимость:</label>
-                  {editMode ? <input type="number" defaultValue={group.capacity} /> : <span>{group.capacity}</span>}
-                </div>
-                <div className="info-group">
-                  <label>Текущее количество детей:</label>
                   {editMode ? (
-                    <input type="number" defaultValue={group.currentEnrollment} />
+                    <input
+                      value={group.attributes.number_classroom}
+                      onChange={(e) =>
+                        setGroup({
+                          ...group,
+                          attributes: {
+                            ...group.attributes,
+                            number_classroom: parseInt(e.target.value),
+                          },
+                        })
+                      }
+                    />
                   ) : (
-                    <span>{group.currentEnrollment}</span>
+                    <span>{group.attributes.number_classroom}</span>
                   )}
                 </div>
+
+                <div className="info-group">
+                  <label>Количество детей:</label>
+                  <span>{children.length}</span>
+                </div>
+
+                <div className="info-group">
+                  <label>Детский сад:</label>
+                  <span>{group.attributes.kindergarten_title}</span>
+                </div>
+
                 <div className="info-group full-width">
                   <label>Описание:</label>
-                  {editMode ? <textarea defaultValue={group.description} rows={3} /> : <span>{group.description}</span>}
-                </div>
-              </div>
-
-              <h4>Режим работы</h4>
-              <div className="info-grid">
-                <div className="info-group">
-                  <label>Время начала:</label>
                   {editMode ? (
-                    <input type="time" defaultValue={group.schedule.startTime} />
+                    <textarea
+                      value={group.attributes.description}
+                      onChange={(e) =>
+                        setGroup({
+                          ...group,
+                          attributes: {
+                            ...group.attributes,
+                            description: e.target.value,
+                          },
+                        })
+                      }
+                      rows={3}
+                    />
                   ) : (
-                    <span>{group.schedule.startTime}</span>
+                    <span>{group.attributes.description}</span>
                   )}
                 </div>
-                <div className="info-group">
-                  <label>Время окончания:</label>
-                  {editMode ? (
-                    <input type="time" defaultValue={group.schedule.endTime} />
-                  ) : (
-                    <span>{group.schedule.endTime}</span>
-                  )}
-                </div>
-                <div className="info-group">
-                  <label>Продленка:</label>
-                  {editMode ? (
-                    <div className="checkbox-wrapper">
-                      <input type="checkbox" defaultChecked={group.schedule.extendedHours} id="extended-hours" />
-                      <label htmlFor="extended-hours">Доступна</label>
-                    </div>
-                  ) : (
-                    <span>{group.schedule.extendedHours ? "Да" : "Нет"}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "staff" && (
-            <div className="tab-content">
-              <div className="staff-header">
-                <h3>Персонал группы</h3>
-                {editMode && <button className="add-button">+ Добавить сотрудника</button>}
-              </div>
-
-              <div className="staff-grid">
-                {group.staff.map((staffMember) => (
-                  <div key={staffMember.id} className="staff-card">
-                    <div className="staff-photo-container">
-                      <img
-                        src={staffMember.photo || "/placeholder.svg"}
-                        alt={`${staffMember.firstName} ${staffMember.lastName}`}
-                      />
-                    </div>
-                    <div className="staff-info">
-                      <h4>
-                        {staffMember.firstName} {staffMember.lastName}
-                      </h4>
-                      <p className="staff-position">{staffMember.position}</p>
-                      <div className="staff-details">
-                        <div className="staff-detail">
-                          <label>Образование:</label>
-                          <span>{staffMember.education}</span>
-                        </div>
-                        <div className="staff-detail">
-                          <label>Опыт работы:</label>
-                          <span>{staffMember.experience}</span>
-                        </div>
-                        <div className="staff-detail">
-                          <label>Телефон:</label>
-                          <span>{staffMember.phone}</span>
-                        </div>
-                        <div className="staff-detail">
-                          <label>Email:</label>
-                          <span>{staffMember.email}</span>
-                        </div>
-                        {staffMember.schedule && (
-                          <div className="staff-detail">
-                            <label>График работы:</label>
-                            <span>{staffMember.schedule}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {editMode && (
-                      <div className="staff-actions">
-                        <button className="edit-item-button">Редактировать</button>
-                        <button className="delete-item-button">Удалить</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -304,234 +320,39 @@ export default function GroupDetailPage() {
           {activeTab === "children" && (
             <div className="tab-content">
               <div className="children-header">
-                <h3>Список детей</h3>
+                <h3>Список детей ({children.length})</h3>
                 <div className="children-actions">
-                  <div className="search-container">
-                    <input
-                      type="text"
-                      placeholder="Поиск по имени..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  {editMode && <button className="add-button">+ Добавить ребенка</button>}
+                  <Input
+                    placeholder="Поиск по имени или фамилии"
+                    allowClear
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: 300 }}
+                  />
                 </div>
               </div>
 
-              <div className="attendance-summary">
-                <div className="summary-item">
-                  <span className="summary-label">Всего детей:</span>
-                  <span className="summary-value">{group.children.length}</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Присутствует:</span>
-                  <span className="summary-value">
-                    {group.children.filter((child) => child.attendance === "Присутствует").length}
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Отсутствует:</span>
-                  <span className="summary-value">
-                    {group.children.filter((child) => child.attendance === "Отсутствует").length}
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Особые потребности:</span>
-                  <span className="summary-value">{group.children.filter((child) => child.specialNeeds).length}</span>
-                </div>
-              </div>
-
-              <div className="children-table-container">
-                <table className="children-table">
-                  <thead>
-                    <tr>
-                      <th>Фото</th>
-                      <th>Имя</th>
-                      <th>Фамилия</th>
-                      <th>Возраст</th>
-                      <th>Статус</th>
-                      <th>Особые потребности</th>
-                      {editMode && <th>Действия</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredChildren.map((child) => (
-                      <tr key={child.id} className={child.attendance === "Отсутствует" ? "absent-row" : ""}>
-                        <td>
-                          <div className="child-photo-cell">
-                            <img src={child.photo || "/placeholder.svg"} alt={`${child.firstName} ${child.lastName}`} />
-                          </div>
-                        </td>
-                        <td>{child.firstName}</td>
-                        <td>{child.lastName}</td>
-                        <td>{child.age} лет</td>
-                        <td>
-                          <span
-                            className={`attendance-status ${child.attendance === "Присутствует" ? "present" : "absent"}`}
-                          >
-                            {child.attendance}
-                          </span>
-                        </td>
-                        <td>
-                          {child.specialNeeds ? (
-                            <span className="special-needs-tag">Да</span>
-                          ) : (
-                            <span className="no-special-needs">Нет</span>
-                          )}
-                        </td>
-                        {editMode && (
-                          <td>
-                            <div className="table-actions">
-                              <button className="view-button">Просмотр</button>
-                              <button className="edit-item-button">Редактировать</button>
-                              <button className="delete-item-button">Удалить</button>
-                            </div>
-                          </td>
-                        )}
-                        {!editMode && (
-                          <td>
-                            <button className="view-button">Просмотр</button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "schedule" && (
-            <div className="tab-content">
-              <h3>Расписание</h3>
-
-              <div className="schedule-tabs">
-                <button className="schedule-tab active">Распорядок дня</button>
-                <button className="schedule-tab">Расписание занятий</button>
-              </div>
-
-              <div className="daily-schedule">
-                <h4>Распорядок дня</h4>
-                <table className="schedule-table">
-                  <thead>
-                    <tr>
-                      <th>Время</th>
-                      <th>Активность</th>
-                      {editMode && <th>Действия</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.dailySchedule.map((item, index) => (
-                      <tr key={index}>
-                        <td>{editMode ? <input type="text" defaultValue={item.time} /> : item.time}</td>
-                        <td>{editMode ? <input type="text" defaultValue={item.activity} /> : item.activity}</td>
-                        {editMode && (
-                          <td>
-                            <button className="delete-item-button">Удалить</button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                    {editMode && (
-                      <tr>
-                        <td colSpan={3}>
-                          <button className="add-schedule-button">+ Добавить пункт</button>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="weekly-schedule">
-                <h4>Расписание занятий</h4>
-                <div className="weekly-schedule-grid">
-                  {group.weeklySchedule.map((day, index) => (
-                    <div key={index} className="day-schedule">
-                      <h5>{day.day}</h5>
-                      <ul className="activities-list">
-                        {day.activities.map((activity, actIndex) => (
-                          <li key={actIndex} className="activity-item">
-                            <span className="activity-time">{activity.time}</span>
-                            <span className="activity-name">
-                              {editMode ? <input type="text" defaultValue={activity.name} /> : activity.name}
-                            </span>
-                            {editMode && <button className="delete-item-button">✕</button>}
-                          </li>
-                        ))}
-                        {editMode && (
-                          <li className="add-activity">
-                            <button className="add-activity-button">+ Добавить занятие</button>
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "announcements" && (
-            <div className="tab-content">
-              <div className="announcements-header">
-                <h3>Объявления и новости</h3>
-              </div>
-
-              {editMode && (
-                <div className="add-announcement-form">
-                  <h4>Добавить новое объявление</h4>
-                  <div className="form-group">
-                    <label>Заголовок:</label>
-                    <input
-                      type="text"
-                      value={newAnnouncement.title}
-                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
-                      placeholder="Введите заголовок..."
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Содержание:</label>
-                    <textarea
-                      value={newAnnouncement.content}
-                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
-                      placeholder="Введите текст объявления..."
-                      rows={4}
-                    />
-                  </div>
-                  <button className="add-announcement-button" onClick={handleAddAnnouncement}>
-                    Опубликовать объявление
-                  </button>
-                </div>
-              )}
-
-              <div className="announcements-list">
-                {group.announcements.map((announcement) => (
-                  <div key={announcement.id} className="announcement-card">
-                    <div className="announcement-header">
-                      <h4>{announcement.title}</h4>
-                      <div className="announcement-meta">
-                        <span className="announcement-date">
-                          {new Date(announcement.date).toLocaleDateString("ru-RU")}
-                        </span>
-                        <span className="announcement-author">{announcement.author}</span>
-                      </div>
-                    </div>
-                    <div className="announcement-content">{announcement.content}</div>
-                    {editMode && (
-                      <div className="announcement-actions">
-                        <button className="edit-item-button">Редактировать</button>
-                        <button className="delete-item-button">Удалить</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <Table<Child>
+                columns={columns}
+                dataSource={children.filter(
+                  (child) =>
+                    child.firstName
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase()) ||
+                    child.lastName
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase())
+                )}
+                rowKey="id"
+                bordered
+                pagination={{ pageSize: 10 }}
+                locale={{
+                  emptyText: "Нет детей в этой группе",
+                }}
+              />
             </div>
           )}
         </div>
       </div>
     </div>
- 
-  )
+  );
 }

@@ -1,66 +1,71 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import "../../styles/ChildCart.css";
 import { useNavigate, useParams } from "react-router-dom";
-import { demoChildData } from "../../DemoData/demoData";
-import { useChild } from "../../hooks/useChild";
-import { ChildDataDetails, children } from "../../types/children.types";
 import { message } from "antd";
+import "../../styles/ChildCart.css";
+
+
  
 
+interface ChildData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photo?: string;
+  dateOfBirth: string;
+  gender: string;
+  group: string;
+  notes: Array<{
+    date: string;
+    author: string;
+    text: string;
+  }>;
+}
+
+
 export default function ChildCart() {
-  const [ChildData, setChildData] = useState(demoChildData);
-  const [child, setChild] = useState(ChildData);
+  const [child, setChild] = useState<ChildData | null>(null);
   const [activeTab, setActiveTab] = useState("general");
   const [editMode, setEditMode] = useState(false);
   const [newNote, setNewNote] = useState("");
-
-  const { id } = useParams<{ id: string }>(); // Получаем ID группы из URL
-
-  const {ChildListMutation} = useChild()
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // Load child data from localStorage
   useEffect(() => {
-    const fetchChildData = async () => {
-      try {
-        // Получаем список всех детских садов
-        const data = await ChildListMutation.mutateAsync();
+    try {
+      const storedChildren = localStorage.getItem('children');
+      if (storedChildren) {
+        const childrenData = JSON.parse(storedChildren);
+        const foundChild = childrenData.data.find((c: any) => c.id === id);
         
-        // Находим детский сад по ID из URL
-        const foundChild = data.data.find((kg: children) => kg.id === id);
-        
-        if (foundChild) {  
-          // Форматируем данные из API в нужный нам формат
-          const formattedData:  ChildDataDetails = {
-            ...demoChildData, // берем все демо-поля
-            id: foundChild.id, 
+        if (foundChild) {
+          const formattedChild: ChildData = {
+            id: foundChild.id,
             firstName: foundChild.attributes.first_name,
             lastName: foundChild.attributes.last_name,
             dateOfBirth: foundChild.attributes.date_of_birth,
-          }
-          setChildData(formattedData);
+            gender: foundChild.attributes.gender || "Не указан",
+            group: foundChild.attributes.group_title || "Не указана",
+            notes: foundChild.attributes.notes || [] // Загружаем заметки из attributes
+          };
+          setChild(formattedChild);
         } else {
-          message.warning("Детский сад не найден, используются демо-данные");
+          message.error("Ребёнок не найден");
+          navigate("/childrens");
         }
-      } catch (error) {
-        console.error("Ошибка при загрузке данных:", error);
-     
-        message.error("Ошибка при загрузке данных, используются демо-данные");
-      } finally {
-      
+      } else {
+        message.error("Данные о детях не найдены");
+        navigate("/childrens");
       }
-    };
-
-    fetchChildData();
-  }, [id]);
-
-  useEffect(() => {
-    setChild(ChildData);
-  }, [ChildData]);
+    } catch (error) {
+      console.error("Ошибка загрузки данных:", error);
+      message.error("Ошибка загрузки данных");
+      navigate("/childrens");
+    }
+  }, [id, navigate]);
 
   const handleAddNote = () => {
-    if (newNote.trim()) {
+    if (newNote.trim() && child) {
       const updatedChild = {
         ...child,
         notes: [
@@ -74,46 +79,104 @@ export default function ChildCart() {
       };
       setChild(updatedChild);
       setNewNote("");
+      
+      // Update in localStorage
+      const storedChildren = localStorage.getItem('children');
+      if (storedChildren) {
+        const childrenData = JSON.parse(storedChildren);
+        const updatedData = {
+          ...childrenData,
+          data: childrenData.data.map((c: any) => 
+            c.id === child.id ? {
+              ...c,
+              attributes: {
+                ...c.attributes,
+                notes: updatedChild.notes
+              }
+            } : c
+          )
+        };
+        localStorage.setItem('children', JSON.stringify(updatedData));
+      }
     }
   };
-  // Функция для определения правильной формы слова "год"
-function getAgeWithCorrectWord(age: number): string {
-  if (age % 100 >= 11 && age % 100 <= 14) {
-    return `${age} лет`;
-  }
-  
-  switch (age % 10) {
-    case 1:
-      return `${age} год`;
-    case 2:
-    case 3:
-    case 4:
-      return `${age} года`;
-    default:
+
+  const handleSave = () => {
+    if (!child) return;
+    
+    try {
+      const storedChildren = localStorage.getItem('children');
+      if (storedChildren) {
+        const childrenData = JSON.parse(storedChildren);
+        const updatedData = {
+          ...childrenData,
+          data: childrenData.data.map((c: any) => 
+            c.id === child.id ? {
+              ...c,
+              attributes: {
+                ...c.attributes,
+                first_name: child.firstName,
+                last_name: child.lastName,
+                date_of_birth: child.dateOfBirth,
+                gender: child.gender,
+                group_title: child.group
+              }
+            } : c
+          )
+        };
+        localStorage.setItem('children', JSON.stringify(updatedData));
+        message.success("Изменения сохранены");
+        setEditMode(false);
+      }
+    } catch (error) {
+      console.error("Ошибка сохранения:", error);
+      message.error("Ошибка сохранения данных");
+    }
+  };
+
+  function getAgeWithCorrectWord(age: number): string {
+    if (age % 100 >= 11 && age % 100 <= 14) {
       return `${age} лет`;
+    }
+    
+    switch (age % 10) {
+      case 1:
+        return `${age} год`;
+      case 2:
+      case 3:
+      case 4:
+        return `${age} года`;
+      default:
+        return `${age} лет`;
+    }
   }
-}
+
+  if (!child) {
+    return <div className="loading">Загрузка...</div>;
+  }
+
+  const calculateAge = () => {
+    return Math.floor(
+      (new Date().getTime() - new Date(child.dateOfBirth).getTime()) /
+      (365.25 * 24 * 60 * 60 * 1000)
+    );
+  };
 
   return (
     <div className="child-detail-container">
       <header className="child-detail-header">
         <div className="header-content">
           <h1>Информация о ребёнке</h1>
-
           <div className="header-actions">
-            <button
-              className="edit-button"
-              onClick={() => navigate("/childrens")}
-            >
+            <button className="edit-button" onClick={() => navigate("/childrens")}>
               Назад к списку
             </button>
             <button
               className="edit-button"
-              onClick={() => setEditMode(!editMode)}
+              onClick={editMode ? handleSave : () => setEditMode(true)}
             >
               {editMode ? "Сохранить" : "Редактировать"}
             </button>
-            <button className="print-button">Печать</button>
           </div>
         </div>
       </header>
@@ -135,42 +198,15 @@ function getAgeWithCorrectWord(age: number): string {
             <h2>
               {child.firstName} {child.lastName}
             </h2>
-            <p className="child-id">ID: {child.id}</p>
             <p className="child-group">{child.group}</p>
           </div>
 
           <nav className="child-tabs">
             <button
-              className={`tab-button ${
-                activeTab === "general" ? "active" : ""
-              }`}
+              className={`tab-button ${activeTab === "general" ? "active" : ""}`}
               onClick={() => setActiveTab("general")}
             >
               Общая информация
-            </button>
-            <button
-              className={`tab-button ${
-                activeTab === "contacts" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("contacts")}
-            >
-              Контакты
-            </button>
-            <button
-              className={`tab-button ${
-                activeTab === "medical" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("medical")}
-            >
-              Медицинская информация
-            </button>
-            <button
-              className={`tab-button ${
-                activeTab === "attendance" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("attendance")}
-            >
-              Посещаемость
             </button>
             <button
               className={`tab-button ${activeTab === "notes" ? "active" : ""}`}
@@ -189,7 +225,10 @@ function getAgeWithCorrectWord(age: number): string {
                 <div className="info-group">
                   <label>Имя:</label>
                   {editMode ? (
-                    <input type="text" defaultValue={child.firstName} />
+                    <input 
+                      value={child.firstName}
+                      onChange={(e) => setChild({...child, firstName: e.target.value})}
+                    />
                   ) : (
                     <span>{child.firstName}</span>
                   )}
@@ -197,7 +236,10 @@ function getAgeWithCorrectWord(age: number): string {
                 <div className="info-group">
                   <label>Фамилия:</label>
                   {editMode ? (
-                    <input type="text" defaultValue={child.lastName} />
+                    <input 
+                      value={child.lastName}
+                      onChange={(e) => setChild({...child, lastName: e.target.value})}
+                    />
                   ) : (
                     <span>{child.lastName}</span>
                   )}
@@ -205,7 +247,11 @@ function getAgeWithCorrectWord(age: number): string {
                 <div className="info-group">
                   <label>Дата рождения:</label>
                   {editMode ? (
-                    <input type="date" />
+                    <input 
+                      type="date"
+                      value={child.dateOfBirth}
+                      onChange={(e) => setChild({...child, dateOfBirth: e.target.value})}
+                    />
                   ) : (
                     <span>
                       {new Date(child.dateOfBirth).toLocaleDateString("ru-RU")}
@@ -215,19 +261,16 @@ function getAgeWithCorrectWord(age: number): string {
                 <div className="info-group">
                   <label>Возраст:</label>
                   <span>
-                    {getAgeWithCorrectWord(
-                      Math.floor(
-                        (new Date().getTime() -
-                          new Date(child.dateOfBirth).getTime()) /
-                          (365.25 * 24 * 60 * 60 * 1000)
-                      )
-                    )}
+                    {getAgeWithCorrectWord(calculateAge())}
                   </span>
                 </div>
                 <div className="info-group">
                   <label>Пол:</label>
                   {editMode ? (
-                    <select defaultValue={child.gender}>
+                    <select 
+                      value={child.gender}
+                      onChange={(e) => setChild({...child, gender: e.target.value})}
+                    >
                       <option value="Мужской">Мужской</option>
                       <option value="Женский">Женский</option>
                     </select>
@@ -238,7 +281,11 @@ function getAgeWithCorrectWord(age: number): string {
                 <div className="info-group">
                   <label>Группа:</label>
                   {editMode ? (
-                    <select defaultValue={child.group}>
+                    <select 
+                      value={child.group}
+                      onChange={(e) => setChild({...child, group: e.target.value})}
+                    >
+                      <option value="Ясельная группа">Ясельная группа</option>
                       <option value="Младшая группа">Младшая группа</option>
                       <option value="Средняя группа">Средняя группа</option>
                       <option value="Старшая группа">Старшая группа</option>
@@ -249,305 +296,6 @@ function getAgeWithCorrectWord(age: number): string {
                   ) : (
                     <span>{child.group}</span>
                   )}
-                </div>
-                <div className="info-group">
-                  <label>Дата зачисления:</label>
-                  {editMode ? (
-                    <input type="date" defaultValue={child.enrollmentDate} />
-                  ) : (
-                    <span>
-                      {new Date(child.enrollmentDate).toLocaleDateString(
-                        "ru-RU"
-                      )}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "contacts" && (
-            <div className="tab-content">
-              <h3>Контактная информация</h3>
-
-              <div className="section-header">
-                <h4>Родители / Опекуны</h4>
-                {editMode && <button className="add-button">+ Добавить</button>}
-              </div>
-
-              {child.parents.map((parent) => (
-                <div key={parent.id} className="contact-card">
-                  <div className="contact-header">
-                    <h5>
-                      {parent.relation}: {parent.firstName} {parent.lastName}
-                    </h5>
-                    {editMode && (
-                      <div className="contact-actions">
-                        <button className="edit-contact-button">
-                          Редактировать
-                        </button>
-                        <button className="delete-contact-button">
-                          Удалить
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="contact-details">
-                    <div className="contact-info">
-                      <label>Телефон:</label>
-                      <span>{parent.phone}</span>
-                    </div>
-                    <div className="contact-info">
-                      <label>Email:</label>
-                      <span>{parent.email}</span>
-                    </div>
-                    <div className="contact-info">
-                      <label>Адрес:</label>
-                      <span>{parent.address}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <div className="section-header">
-                <h4>Экстренные контакты</h4>
-                {editMode && <button className="add-button">+ Добавить</button>}
-              </div>
-
-              {child.emergencyContacts.map((contact, index) => (
-                <div key={index} className="contact-card">
-                  <div className="contact-header">
-                    <h5>
-                      {contact.name} ({contact.relation})
-                    </h5>
-                    {editMode && (
-                      <div className="contact-actions">
-                        <button className="edit-contact-button">
-                          Редактировать
-                        </button>
-                        <button className="delete-contact-button">
-                          Удалить
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="contact-details">
-                    <div className="contact-info">
-                      <label>Телефон:</label>
-                      <span>{contact.phone}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === "medical" && (
-            <div className="tab-content">
-              <h3>Медицинская информация</h3>
-              <div className="info-grid">
-                <div className="info-group">
-                  <label>Группа крови:</label>
-                  {editMode ? (
-                    <select defaultValue={child.medicalInfo.bloodType}>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                    </select>
-                  ) : (
-                    <span>{child.medicalInfo.bloodType}</span>
-                  )}
-                </div>
-                <div className="info-group">
-                  <label>Врач:</label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      defaultValue={child.medicalInfo.doctorName}
-                    />
-                  ) : (
-                    <span>{child.medicalInfo.doctorName}</span>
-                  )}
-                </div>
-                <div className="info-group">
-                  <label>Телефон врача:</label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      defaultValue={child.medicalInfo.doctorPhone}
-                    />
-                  ) : (
-                    <span>{child.medicalInfo.doctorPhone}</span>
-                  )}
-                </div>
-                <div className="info-group">
-                  <label>Особые потребности:</label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      defaultValue={child.medicalInfo.specialNeeds}
-                    />
-                  ) : (
-                    <span>{child.medicalInfo.specialNeeds}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="section-header">
-                <h4>Аллергии</h4>
-                {editMode && <button className="add-button">+ Добавить</button>}
-              </div>
-
-              <ul className="medical-list">
-                {child.medicalInfo.allergies.length > 0 ? (
-                  child.medicalInfo.allergies.map((allergy, index) => (
-                    <li key={index} className="medical-item">
-                      <span>{allergy}</span>
-                      {editMode && (
-                        <button className="delete-item-button">Удалить</button>
-                      )}
-                    </li>
-                  ))
-                ) : (
-                  <li className="medical-item empty">Нет известных аллергий</li>
-                )}
-              </ul>
-
-              <div className="section-header">
-                <h4>Принимаемые лекарства</h4>
-                {editMode && <button className="add-button">+ Добавить</button>}
-              </div>
-
-              <ul className="medical-list">
-                {child.medicalInfo.medications.length > 0 ? (
-                  child.medicalInfo.medications.map((medication, index) => (
-                    <li key={index} className="medical-item">
-                      <span>{medication}</span>
-                      {editMode && (
-                        <button className="delete-item-button">Удалить</button>
-                      )}
-                    </li>
-                  ))
-                ) : (
-                  <li className="medical-item empty">
-                    Нет принимаемых лекарств
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
-
-          {activeTab === "attendance" && (
-            <div className="tab-content">
-              <h3>Посещаемость</h3>
-
-              <div className="attendance-header">
-                <div className="attendance-filters">
-                  <select defaultValue="current-month">
-                    <option value="current-month">Текущий месяц</option>
-                    <option value="previous-month">Предыдущий месяц</option>
-                    <option value="custom">Выбрать период</option>
-                  </select>
-                  {editMode && (
-                    <button className="add-button">+ Добавить запись</button>
-                  )}
-                </div>
-              </div>
-
-              <table className="attendance-table">
-                <thead>
-                  <tr>
-                    <th>Дата</th>
-                    <th>Статус</th>
-                    <th>Примечания</th>
-                    {editMode && <th>Действия</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {child.attendance.map((record, index) => (
-                    <tr
-                      key={index}
-                      className={
-                        record.status === "Отсутствовал" ? "absent" : ""
-                      }
-                    >
-                      <td>
-                        {new Date(record.date).toLocaleDateString("ru-RU")}
-                      </td>
-                      <td>
-                        {editMode ? (
-                          <select defaultValue={record.status}>
-                            <option value="Присутствовал">Присутствовал</option>
-                            <option value="Отсутствовал">Отсутствовал</option>
-                            <option value="Опоздал">Опоздал</option>
-                          </select>
-                        ) : (
-                          record.status
-                        )}
-                      </td>
-                      <td>
-                        {editMode ? (
-                          <input type="text" defaultValue={record.notes} />
-                        ) : (
-                          record.notes
-                        )}
-                      </td>
-                      {editMode && (
-                        <td>
-                          <button className="delete-item-button">
-                            Удалить
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="attendance-summary">
-                <div className="summary-item">
-                  <span className="summary-label">Всего дней:</span>
-                  <span className="summary-value">
-                    {child.attendance.length}
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Присутствовал:</span>
-                  <span className="summary-value">
-                    {
-                      child.attendance.filter(
-                        (r) => r.status === "Присутствовал"
-                      ).length
-                    }
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Отсутствовал:</span>
-                  <span className="summary-value">
-                    {
-                      child.attendance.filter(
-                        (r) => r.status === "Отсутствовал"
-                      ).length
-                    }
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Посещаемость:</span>
-                  <span className="summary-value">
-                    {Math.round(
-                      (child.attendance.filter(
-                        (r) => r.status === "Присутствовал"
-                      ).length /
-                        child.attendance.length) *
-                        100
-                    )}
-                    %
-                  </span>
                 </div>
               </div>
             </div>
@@ -580,9 +328,6 @@ function getAgeWithCorrectWord(age: number): string {
                       <span className="note-author">{note.author}</span>
                       {editMode && (
                         <div className="note-actions">
-                          <button className="edit-note-button">
-                            Редактировать
-                          </button>
                           <button className="delete-note-button">
                             Удалить
                           </button>
@@ -600,4 +345,3 @@ function getAgeWithCorrectWord(age: number): string {
     </div>
   );
 }
- 

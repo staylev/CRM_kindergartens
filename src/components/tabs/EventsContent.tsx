@@ -1,70 +1,87 @@
 import { Button, DatePicker, Form, Input, message, Modal, Select } from "antd";
 import { useState } from "react";
-import { useEvent } from "../../hooks/useEvent";
- 
-import { useGroups } from "../../hooks/useGroup";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone'
-import { useChild } from "../../hooks/useChild"; 
+import timezone from 'dayjs/plugin/timezone';
 import EventTable from "../tables/EventTable";
-import { EventData } from "../../types/event.type";
+import { EventData, events } from "../../types/event.type";
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 type LayoutType = Parameters<typeof Form>[0]["layout"];
-/**
- * Компонент для отображения информации о группах
- */
+
 export const EventsContent = () => {
-  dayjs.extend(utc);
-  dayjs.extend(timezone);
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
   const [refreshTable, setRefreshTable] = useState(false);
-  const { addEventMutation, EventListMutation } = useEvent();
-
   const [form] = Form.useForm();
   const [formLayout, setFormLayout] = useState<LayoutType>("horizontal");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [kindergartens, setkinddergartens] = useState<any[]>([]);
+ 
+
+  const saveEventToLocalStorage = (event: EventData) => {
+    const events = JSON.parse(localStorage.getItem('events') || '[]');
+    events.push(event);
+    localStorage.setItem('events', JSON.stringify(events));
+  };
 
   const onFinish = async (values: EventData) => {
     try {
-      await addEventMutation.mutateAsync(values);
+      const selectedKindergarten = kindergartens.find(k => k.id === values.attributes.kindergarten_title);
+      
+      const newEvent: EventData = {
+        id: Date.now().toString(),
+        type: "event",
+        attributes: {
+          ...values.attributes,
+          datetime_start: new Date(values.attributes.datetime_start),
+          datetime_end: new Date(values.attributes.datetime_end),
+          type_event: 'standard',
+          date: new Date(),
+          kindergarten_title: selectedKindergarten?.attributes?.title || '',
+          kinddergarten_id: selectedKindergarten?.id || '',
+        }
+      };
+      
+      saveEventToLocalStorage(newEvent);
       message.success('Мероприятие успешно добавлено');
       form.resetFields();
-      setRefreshTable((prev) => !prev);
-      EventListMutation.mutate();
+      setRefreshTable(prev => !prev);
     } catch (error) {
-      message.error('Ошибка при добавлении ребёнка');
+      message.error('Ошибка при добавлении мероприятия');
     }
   };
+
   const onFormLayoutChange = ({ layout }: { layout: LayoutType }) => {
     setFormLayout(layout);
   };
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { GroupListMutation } = useGroups()
-  const {ChildListMutation } = useChild()
-
   const showModal = () => {
     setIsModalOpen(true);
-    GroupListMutation.mutate();
-    ChildListMutation.mutate();
+   
+    const storedkinddergartens= JSON.parse(localStorage.getItem('kindergartens') || '[]');
+    setkinddergartens(storedkinddergartens);
+  
   };
   
   const handleOk = () => {
     const values = form.getFieldsValue();
-    if (!values.attributes?.title || !values.attributes?.description || !values.attributes?.datetime_start || !values.attributes?.datetime_end || !values.attributes.child_id || !values.attributes?.group_id) {
-      message.error('Пожалуйста, заполните все поля');
-      return; // Прерываем выполнение функции, если какое-то поле не заполнено
+    if (!values.attributes?.title || 
+        !values.attributes?.description || 
+        !values.attributes?.datetime_start || 
+        !values.attributes?.datetime_end ) {
+      message.error('Пожалуйста, заполните все обязательные поля');
+      return;
     }
     form.submit(); 
     setIsModalOpen(false);
   };
+
   const handleCancel = () => {
     setIsModalOpen(false);
   };
 
- 
   return (
     <div className="container-fluid px-4">
       <h1 className="mt-4">Мероприятие</h1>
@@ -137,20 +154,19 @@ export const EventsContent = () => {
               format="YYYY-MM-DD HH:mm"
               showTime
               onChange={(date) => {
-                // Check if date is valid
                 if (date) {
                   const dateWithTimeZone = dayjs(date).tz(userTimeZone).format();
                   form.setFieldsValue({
                     attributes: {
                       ...form.getFieldValue("attributes"),
-                      datetime_start: dateWithTimeZone, // Set the formatted date string
+                      datetime_start: dateWithTimeZone,
                     },
                   });
                 } else {
                   form.setFieldsValue({
                     attributes: {
                       ...form.getFieldValue('attributes'),
-                      datetime_start: null, // Очищаем значение, если дата не выбрана
+                      datetime_start: null,
                     },
                   });
                 }
@@ -175,20 +191,19 @@ export const EventsContent = () => {
               format="YYYY-MM-DD HH:mm"
               showTime
               onChange={(date) => {
-                // Check if date is valid
                 if (date) {
                   const dateWithTimeZone = dayjs(date).tz(userTimeZone).format();
                   form.setFieldsValue({
                     attributes: {
                       ...form.getFieldValue("attributes"),
-                      datetime_end: dateWithTimeZone, // Set the formatted date string
+                      datetime_end: dateWithTimeZone,
                     },
                   });
                 } else {
                   form.setFieldsValue({
                     attributes: {
                       ...form.getFieldValue('attributes'),
-                      datetime_end: null, // Очищаем значение, если дата не выбрана
+                      datetime_end: null,
                     },
                   });
                 }
@@ -197,52 +212,25 @@ export const EventsContent = () => {
           </Form.Item>
 
           <Form.Item
-            label="Фамилия ребёнка"
-            name={["attributes", "child_id"]}
+            label="Детский сад"
+            name={["attributes", "kindergarten_title"]}
             rules={[
               {
                 required: true,
-                message: "Пожалуйста, введите фамилию ребёнка",
-              },
-            ]}
-          >
-           <Select style={{ width: 200 }} optionFilterProp="label">
-              {ChildListMutation.data?.data &&
-              Array.isArray(ChildListMutation.data.data)
-                ? ChildListMutation.data.data.map((item) => (
-                    <Select.Option key={item.id} value={item.id}>
-                      {item.attributes.last_name}
-                    </Select.Option>
-                  ))
-                : null}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="группа"
-            name={["attributes", "group_id"]}
-            rules={[
-              {
-                required: true,
-                message: "Пожалуйста, введите группу ребёнка",
+                message: "Пожалуйста, выберите детский сад",
               },
             ]}
           >
             <Select style={{ width: 200 }} optionFilterProp="label">
-              {GroupListMutation.data?.data &&
-              Array.isArray(GroupListMutation.data.data)
-                ? GroupListMutation.data.data.map((item) => (
-                    <Select.Option key={item.id} value={item.id}>
-                      {item.attributes.title}
-                    </Select.Option>
-                  ))
-                : null}
+              {kindergartens.map((item) => (
+                <Select.Option key={item.id}>
+                  {item.attributes.title}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
         </Form>
       </Modal>
     </div>
-
-  );};
- 
-
+  );
+};

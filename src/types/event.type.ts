@@ -1,4 +1,6 @@
 export interface events {
+    status: string | number | readonly string[] | undefined;
+    notes: any;
     relationships: any;
     type: string;
     attributes: {
@@ -8,6 +10,11 @@ export interface events {
       datetime_end : Date;
       group_title: string;
       child_last_name: string;
+      kinddergarten_id: string;
+      kindergarten_title: string;
+      type_event: string;
+      date:Date
+      status: string;
     };
     id: string;
   }
@@ -26,8 +33,11 @@ export interface events {
     description : string;
     datetime_start: Date;
     datetime_end : Date;
-    group_id: string;
-    child_id: string;
+    type_event: string;
+    date:Date
+    kinddergarten_id: string;
+    kindergarten_title: string; 
+    status: string;
   }
   
   export interface EventData {
@@ -36,62 +46,5 @@ export interface events {
     attributes: EventAttributes;
   }
 
-  export interface EventDataDetails {
-    id: string;
-    title: string;
-    type: string;
-    description: string;
-    status: string;
-    date: Date; // YYYY-MM-DD
-    timeStart: Date; // HH:mm
-    timeEnd: Date; // HH:mm
-    location: string;
-    coverImage: string;
-    organizer: string;
-    groups: string[];
-    participants: {
-      staff: Array<{
-        id: string;
-        name: string;
-        position: string;
-        role: string;
-        photo: string;
-      }>;
-      children: number;
-      parents: number;
-    };
-    schedule: Array<{
-      time: string;
-      activity: string;
-      responsible: string;
-    }>;
-    resources: Array<{
-      category: string;
-      items: Array<{
-        name: string;
-        quantity: number;
-        status: string;
-      }>;
-    }>;
-    budget: {
-      planned: number;
-      spent: number;
-      items: Array<{
-        name: string;
-        amount: number;
-        status: string;
-      }>;
-    };
-    photos: Array<{
-      id: string;
-      url: string;
-      description: string;
-    }>;
-    notes: Array<{
-      id: string;
-      date: string; // YYYY-MM-DD
-      author: string;
-      text: string;
-    }>;
-  }
+ 
   
