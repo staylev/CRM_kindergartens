@@ -1,157 +1,127 @@
-"use client"
+import { useState, useEffect } from "react";
+import "../../styles/parent-detail-page.css";
+import { useNavigate, useParams } from "react-router-dom";
+import { Parents, ParentsAttributes } from "../../types/Parent..type";
+import { message } from "antd";
 
-import { useState } from "react"
-import "../../styles/parent-detail-page.css"
-import { useNavigate } from "react-router-dom"
-
-// Пример данных о родителе
-const sampleParent = {
-  id: "P001",
-  firstName: "Елена",
-  lastName: "Смирнова",
-  middleName: "Александровна",
-  relation: "Мать",
-  photo: "/placeholder.svg?height=150&width=150",
-  dateOfBirth: "1985-06-15",
-  passport: "4510 123456",
-  address: "ул. Ленина, 42, кв. 15",
-  phone: "+7 (912) 345-67-89",
-  email: "elena@example.com",
-  workPlace: "ООО 'Технологии будущего'",
-  workPosition: "Менеджер по персоналу",
-  workPhone: "+7 (495) 123-45-67",
-  children: [
-    {
-      id: "CH001",
-      firstName: "Алексей",
-      lastName: "Смирнов",
-      age: 5,
-      group: "Старшая группа 'Солнышко'",
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-    {
-      id: "CH002",
-      firstName: "Мария",
-      lastName: "Смирнова",
-      age: 3,
-      group: "Младшая группа 'Звездочки'",
-      photo: "/placeholder.svg?height=50&width=50",
-    },
-  ],
-  payments: [
-    {
-      id: "PAY001",
-      date: "2023-10-01",
-      amount: 15000,
-      purpose: "Оплата за октябрь 2023",
-      status: "Оплачено",
-      method: "Банковская карта",
-    },
-    {
-      id: "PAY002",
-      date: "2023-09-01",
-      amount: 15000,
-      purpose: "Оплата за сентябрь 2023",
-      status: "Оплачено",
-      method: "Банковская карта",
-    },
-    {
-      id: "PAY003",
-      date: "2023-08-01",
-      amount: 15000,
-      purpose: "Оплата за август 2023",
-      status: "Оплачено",
-      method: "Наличные",
-    },
-  ],
-  documents: [
-    {
-      id: "DOC001",
-      name: "Договор на оказание услуг",
-      date: "2022-08-25",
-      status: "Подписан",
-      file: "contract.pdf",
-    },
-    {
-      id: "DOC002",
-      name: "Согласие на обработку персональных данных",
-      date: "2022-08-25",
-      status: "Подписан",
-      file: "consent.pdf",
-    },
-    {
-      id: "DOC003",
-      name: "Медицинская карта",
-      date: "2022-08-20",
-      status: "Предоставлен",
-      file: "medical.pdf",
-    },
-  ],
-  communications: [
-    {
-      id: "COM001",
-      date: "2023-10-10",
-      type: "Телефонный звонок",
-      subject: "Обсуждение подготовки к утреннику",
-      content: "Родитель проинформирован о необходимости подготовить костюм к осеннему утреннику.",
-      staff: "Петрова Е.И.",
-    },
-    {
-      id: "COM002",
-      date: "2023-09-15",
-      type: "Личная встреча",
-      subject: "Обсуждение успеваемости",
-      content: "Проведена беседа о прогрессе ребенка в освоении программы. Родитель выразил удовлетворение.",
-      staff: "Иванова О.П.",
-    },
-    {
-      id: "COM003",
-      date: "2023-09-05",
-      type: "Email",
-      subject: "Напоминание об оплате",
-      content: "Отправлено напоминание о необходимости внести оплату за сентябрь.",
-      staff: "Система",
-    },
-  ],
+interface Child {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  group: string;
+  photo?: string;
 }
+ 
 
 export default function ParentDetailPage() {
-  const [parent, setParent] = useState(sampleParent)
-  const [activeTab, setActiveTab] = useState("info")
-  const [editMode, setEditMode] = useState(false)
-  const [newCommunication, setNewCommunication] = useState({ type: "Телефонный звонок", subject: "", content: "" })
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("info");
+  const [editMode, setEditMode] = useState(false);
+  const [parent, setParent] = useState<Parents | null>(null);
+  const [childrenList, setChildrenList] = useState<Child[]>([]);
+  
 
-  // Добавление новой записи о коммуникации
-  const handleAddCommunication = () => {
-    if (newCommunication.subject.trim() && newCommunication.content.trim()) {
-      const updatedParent = {
-        ...parent,
-        communications: [
-          {
-            id: `COM00${parent.communications.length + 1}`,
-            date: new Date().toISOString().split("T")[0],
-            type: newCommunication.type,
-            subject: newCommunication.subject,
-            content: newCommunication.content,
-            staff: "Текущий пользователь",
-          },
-          ...parent.communications,
-        ],
+  // Загрузка данных
+  useEffect(() => {
+    const loadData = () => {
+      try {
+        const parentsData = localStorage.getItem("parents") || "[]";
+        console.log(id)
+        console.log(parentsData)
+        const childrenData = localStorage.getItem("children");
+
+        if (!parentsData || !childrenData) {
+          alert("Нет данных в localStorage");
+          navigate("/parents");
+          return;
+        }
+
+        const allParents = JSON.parse(parentsData);
+        const allChildren = JSON.parse(childrenData).data || [];
+
+        const foundParent = allParents.find((p: ParentsAttributes ) => p.tg === id); // или p.id === id
+
+   
+        console.log("foundParent", foundParent);
+        console.log("allParents", allParents);
+
+        if (!foundParent) {
+          alert("Родитель не найден");
+          navigate("/parents");
+          return;
+        }
+
+        // Найдём детей этого родителя
+        const parentChildren = allChildren.filter((child: any) =>
+          foundParent.childrenIds.includes(child.id)
+        );
+
+        const normalizedChildren = parentChildren.map((c: any) => ({
+          id: c.attributes.tg ,
+          firstName: c.attributes.first_name,
+          lastName: c.attributes.last_name,
+          dateOfBirth: c.attributes.date_of_birth,
+          group: c.attributes.group_title,
+          photo: c.attributes.image
+        }));
+
+        setParent(foundParent);
+        setChildrenList(normalizedChildren);
+      } catch (error) {
+        console.error("Ошибка загрузки данных", error);
+        navigate("/parents");
       }
-      setParent(updatedParent)
-      setNewCommunication({ type: "Телефонный звонок", subject: "", content: "" })
+    };
+
+    loadData();
+  }, [id, navigate]);
+
+  // Сохранение изменений
+  const handleSave = () => {
+    if (!parent) return;
+
+    try {
+      const storedParents = localStorage.getItem("parents");
+      const parsedParents = storedParents ? JSON.parse(storedParents) : [];
+
+      const updatedParents = parsedParents.map((p: Parents) =>
+        p.attributes.tg  === parent.attributes.tg ? parent : p
+      );
+
+      localStorage.setItem("parents", JSON.stringify(updatedParents));
+      message.success("Данные успешно сохранены");
+      setEditMode(false);
+    } catch (error) {
+      message.error("Ошибка при сохранении данных");
     }
+  };
+
+  const handleChange = (field: keyof Parents['attributes'], value: string) => {
+    setParent((prev) =>
+      prev ? { 
+        ...prev, 
+        attributes: { 
+          ...prev.attributes, 
+          [field]: value 
+        } 
+      } : null
+    );
+  };
+  if (!parent) {
+    return <div>Загрузка данных...</div>;
   }
-  const navigate = useNavigate()
+
   return (
     <div className="parent-detail-container">
       <header className="parent-detail-header">
         <div className="header-content">
           <h1>Информация о родителе</h1>
           <div className="header-actions">
-          <button className="edit-button" onClick={() => navigate("/parents")}>
-               назад к списку
-               </button>
+            <button className="edit-button" onClick={() => navigate("/parents")}>
+              назад к списку
+            </button>
             <button className="edit-button" onClick={() => setEditMode(!editMode)}>
               {editMode ? "Сохранить" : "Редактировать"}
             </button>
@@ -164,8 +134,8 @@ export default function ParentDetailPage() {
         <div className="parent-sidebar">
           <div className="parent-photo-container">
             <img
-              src={parent.photo || "/placeholder.svg"}
-              alt={`${parent.firstName} ${parent.lastName}`}
+              src={"/placeholder.svg"}
+              alt={`${parent.attributes.frist_name} ${parent.attributes.last_name}`}
               className="parent-photo"
             />
             {editMode && <button className="change-photo-button">Изменить фото</button>}
@@ -173,10 +143,9 @@ export default function ParentDetailPage() {
 
           <div className="parent-quick-info">
             <h2>
-              {parent.lastName} {parent.firstName} {parent.middleName}
+              {parent.attributes.last_name} {parent.attributes.frist_name} {parent.attributes.patronymic}
             </h2>
-            <p className="parent-id">ID: {parent.id}</p>
-            <p className="parent-relation">{parent.relation}</p>
+            <p className="parent-relation">{parent.attributes.type_of_parent}</p>
           </div>
 
           <nav className="parent-tabs">
@@ -192,24 +161,6 @@ export default function ParentDetailPage() {
             >
               Дети
             </button>
-            <button
-              className={`tab-button ${activeTab === "payments" ? "active" : ""}`}
-              onClick={() => setActiveTab("payments")}
-            >
-              Платежи
-            </button>
-            <button
-              className={`tab-button ${activeTab === "documents" ? "active" : ""}`}
-              onClick={() => setActiveTab("documents")}
-            >
-              Документы
-            </button>
-            <button
-              className={`tab-button ${activeTab === "communications" ? "active" : ""}`}
-              onClick={() => setActiveTab("communications")}
-            >
-              Коммуникации
-            </button>
           </nav>
         </div>
 
@@ -220,20 +171,47 @@ export default function ParentDetailPage() {
               <div className="info-grid">
                 <div className="info-group">
                   <label>Фамилия:</label>
-                  {editMode ? <input type="text" defaultValue={parent.lastName} /> : <span>{parent.lastName}</span>}
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={parent.attributes.last_name}
+                      onChange={(e) => handleChange("last_name", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.last_name}</span>
+                  )}
                 </div>
                 <div className="info-group">
                   <label>Имя:</label>
-                  {editMode ? <input type="text" defaultValue={parent.firstName} /> : <span>{parent.firstName}</span>}
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={parent. attributes.frist_name}
+                      onChange={(e) => handleChange("frist_name", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.frist_name}</span>
+                  )}
                 </div>
                 <div className="info-group">
                   <label>Отчество:</label>
-                  {editMode ? <input type="text" defaultValue={parent.middleName} /> : <span>{parent.middleName}</span>}
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={parent.attributes.patronymic}
+                      onChange={(e) => handleChange("patronymic", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.patronymic}</span>
+                  )}
                 </div>
                 <div className="info-group">
                   <label>Кем приходится:</label>
                   {editMode ? (
-                    <select defaultValue={parent.relation}>
+                    <select
+                      value={parent.attributes.type_of_parent}
+                      onChange={(e) => handleChange("type_of_parent", e.target.value)}
+                    >
                       <option value="Мать">Мать</option>
                       <option value="Отец">Отец</option>
                       <option value="Бабушка">Бабушка</option>
@@ -242,20 +220,32 @@ export default function ParentDetailPage() {
                       <option value="Другое">Другое</option>
                     </select>
                   ) : (
-                    <span>{parent.relation}</span>
+                    <span>{parent.attributes.type_of_parent}</span>
                   )}
                 </div>
                 <div className="info-group">
                   <label>Дата рождения:</label>
                   {editMode ? (
-                    <input type="date" defaultValue={parent.dateOfBirth} />
+                    <input
+                      type="date"
+                      value={new Date(parent.attributes.date_of_birth).toISOString().split("T")[0]}
+                      onChange={(e) => handleChange("date_of_birth", e.target.value)}
+                    />
                   ) : (
-                    <span>{new Date(parent.dateOfBirth).toLocaleDateString("ru-RU")}</span>
+                    <span>{new Date(parent.attributes.date_of_birth).toLocaleDateString("ru-RU")}</span>
                   )}
                 </div>
                 <div className="info-group">
                   <label>Паспорт:</label>
-                  {editMode ? <input type="text" defaultValue={parent.passport} /> : <span>{parent.passport}</span>}
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={parent.attributes.pasport_series}
+                      onChange={(e) => handleChange("pasport_series", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.pasport_series}</span>
+                  )}
                 </div>
               </div>
 
@@ -263,15 +253,39 @@ export default function ParentDetailPage() {
               <div className="info-grid">
                 <div className="info-group">
                   <label>Адрес:</label>
-                  {editMode ? <input type="text" defaultValue={parent.address} /> : <span>{parent.address}</span>}
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={parent.attributes.adress}
+                      onChange={(e) => handleChange("adress", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.adress}</span>
+                  )}
                 </div>
                 <div className="info-group">
                   <label>Телефон:</label>
-                  {editMode ? <input type="tel" defaultValue={parent.phone} /> : <span>{parent.phone}</span>}
+                  {editMode ? (
+                    <input
+                      type="tel"
+                      value={parent.attributes.number_phone}
+                      onChange={(e) => handleChange("number_phone", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.number_phone}</span>
+                  )}
                 </div>
                 <div className="info-group">
                   <label>Email:</label>
-                  {editMode ? <input type="email" defaultValue={parent.email} /> : <span>{parent.email}</span>}
+                  {editMode ? (
+                    <input
+                      type="email"
+                      value={parent.attributes.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.email}</span>
+                  )}
                 </div>
               </div>
 
@@ -279,19 +293,27 @@ export default function ParentDetailPage() {
               <div className="info-grid">
                 <div className="info-group">
                   <label>Место работы:</label>
-                  {editMode ? <input type="text" defaultValue={parent.workPlace} /> : <span>{parent.workPlace}</span>}
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={parent.attributes.place_of_work}
+                      onChange={(e) => handleChange("place_of_work", e.target.value)}
+                    />
+                  ) : (
+                    <span>{parent.attributes.place_of_work}</span>
+                  )}
                 </div>
                 <div className="info-group">
                   <label>Должность:</label>
                   {editMode ? (
-                    <input type="text" defaultValue={parent.workPosition} />
+                    <input
+                      type="text"
+                      value={parent.attributes.post}
+                      onChange={(e) => handleChange("post", e.target.value)}
+                    />
                   ) : (
-                    <span>{parent.workPosition}</span>
+                    <span>{parent.attributes.post}</span>
                   )}
-                </div>
-                <div className="info-group">
-                  <label>Рабочий телефон:</label>
-                  {editMode ? <input type="tel" defaultValue={parent.workPhone} /> : <span>{parent.workPhone}</span>}
                 </div>
               </div>
             </div>
@@ -317,279 +339,46 @@ export default function ParentDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {parent.children.map((child) => (
-                      <tr key={child.id}>
-                        <td>
-                          <div className="child-photo-cell">
-                            <img src={child.photo || "/placeholder.svg"} alt={`${child.firstName} ${child.lastName}`} />
-                          </div>
-                        </td>
-                        <td>{child.firstName}</td>
-                        <td>{child.lastName}</td>
-                        <td>{child.age} лет</td>
-                        <td>{child.group}</td>
-                        <td>
-                          <div className="table-actions">
-                            <button className="view-button">Просмотр</button>
-                            {editMode && (
-                              <>
-                                <button className="edit-item-button">Редактировать</button>
-                                <button className="delete-item-button">Удалить</button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "payments" && (
-            <div className="tab-content">
-              <div className="payments-header">
-                <h3>История платежей</h3>
-                {editMode && <button className="add-button">+ Добавить платеж</button>}
-              </div>
-
-              <div className="payments-filters">
-                <select defaultValue="all">
-                  <option value="all">Все платежи</option>
-                  <option value="paid">Оплаченные</option>
-                  <option value="pending">Ожидающие оплаты</option>
-                  <option value="overdue">Просроченные</option>
-                </select>
-                <div className="date-range">
-                  <input type="date" placeholder="От" />
-                  <span>—</span>
-                  <input type="date" placeholder="До" />
-                </div>
-              </div>
-
-              <div className="payments-table-container">
-                <table className="payments-table">
-                  <thead>
-                    <tr>
-                      <th>Дата</th>
-                      <th>Назначение</th>
-                      <th>Сумма</th>
-                      <th>Статус</th>
-                      <th>Способ оплаты</th>
-                      {editMode && <th>Действия</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {parent.payments.map((payment) => (
-                      <tr key={payment.id}>
-                        <td>{new Date(payment.date).toLocaleDateString("ru-RU")}</td>
-                        <td>{payment.purpose}</td>
-                        <td className="amount-cell">{payment.amount.toLocaleString("ru-RU")} ₽</td>
-                        <td>
-                          <span className={`payment-status ${payment.status === "Оплачено" ? "paid" : "pending"}`}>
-                            {payment.status}
-                          </span>
-                        </td>
-                        <td>{payment.method}</td>
-                        {editMode && (
+                    {childrenList.length > 0 ? (
+                      childrenList.map((child) => (
+                        <tr key={child.id}>
                           <td>
-                            <div className="table-actions">
-                              <button className="edit-item-button">Редактировать</button>
-                              <button className="delete-item-button">Удалить</button>
+                            <div className="child-photo-cell">
+                              <img
+                                src={child.photo || "/placeholder.svg"}
+                                alt={`${child.firstName} ${child.lastName}`}
+                              />
                             </div>
                           </td>
-                        )}
+                          <td>{child.firstName}</td>
+                          <td>{child.lastName}</td>
+                          {/* <td>{child.age} лет</td> */}
+                          <td>{child.group}</td>
+                          <td>
+                            <div className="table-actions">
+                              <button className="view-button">Просмотр</button>
+                              {editMode && (
+                                <>
+                                  <button className="edit-item-button">Редактировать</button>
+                                  <button className="delete-item-button">Удалить</button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6}>Нет детей</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
-              </div>
-
-              <div className="payment-summary">
-                <div className="summary-item">
-                  <span className="summary-label">Всего оплачено:</span>
-                  <span className="summary-value">
-                    {parent.payments
-                      .filter((p) => p.status === "Оплачено")
-                      .reduce((sum, p) => sum + p.amount, 0)
-                      .toLocaleString("ru-RU")}{" "}
-                    ₽
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Ожидает оплаты:</span>
-                  <span className="summary-value">
-                    {parent.payments
-                      .filter((p) => p.status !== "Оплачено")
-                      .reduce((sum, p) => sum + p.amount, 0)
-                      .toLocaleString("ru-RU")}{" "}
-                    ₽
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "documents" && (
-            <div className="tab-content">
-              <div className="documents-header">
-                <h3>Документы</h3>
-                {editMode && <button className="add-button">+ Добавить документ</button>}
-              </div>
-
-              <div className="documents-table-container">
-                <table className="documents-table">
-                  <thead>
-                    <tr>
-                      <th>Название</th>
-                      <th>Дата</th>
-                      <th>Статус</th>
-                      <th>Действия</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {parent.documents.map((document) => (
-                      <tr key={document.id}>
-                        <td>{document.name}</td>
-                        <td>{new Date(document.date).toLocaleDateString("ru-RU")}</td>
-                        <td>
-                          <span
-                            className={`document-status ${
-                              document.status === "Подписан"
-                                ? "signed"
-                                : document.status === "Предоставлен"
-                                  ? "provided"
-                                  : "pending"
-                            }`}
-                          >
-                            {document.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <button className="view-button">Просмотр</button>
-                            <button className="download-button">Скачать</button>
-                            {editMode && <button className="delete-item-button">Удалить</button>}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {editMode && (
-                <div className="upload-document">
-                  <h4>Загрузить новый документ</h4>
-                  <div className="upload-form">
-                    <div className="form-group">
-                      <label>Название документа:</label>
-                      <input type="text" placeholder="Введите название документа" />
-                    </div>
-                    <div className="form-group">
-                      <label>Тип документа:</label>
-                      <select>
-                        <option value="contract">Договор</option>
-                        <option value="consent">Согласие</option>
-                        <option value="medical">Медицинский документ</option>
-                        <option value="other">Другое</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Файл:</label>
-                      <div className="file-upload">
-                        <input type="file" id="document-file" className="file-input" />
-                        <label htmlFor="document-file" className="file-label">
-                          Выберите файл
-                        </label>
-                        <span className="file-name">Файл не выбран</span>
-                      </div>
-                    </div>
-                    <button className="upload-button">Загрузить документ</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "communications" && (
-            <div className="tab-content">
-              <div className="communications-header">
-                <h3>История коммуникаций</h3>
-              </div>
-
-              {editMode && (
-                <div className="add-communication-form">
-                  <h4>Добавить новую запись</h4>
-                  <div className="form-group">
-                    <label>Тип коммуникации:</label>
-                    <select
-                      value={newCommunication.type}
-                      onChange={(e) => setNewCommunication({ ...newCommunication, type: e.target.value })}
-                    >
-                      <option value="Телефонный звонок">Телефонный звонок</option>
-                      <option value="Email">Email</option>
-                      <option value="SMS">SMS</option>
-                      <option value="Личная встреча">Личная встреча</option>
-                      <option value="Другое">Другое</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Тема:</label>
-                    <input
-                      type="text"
-                      value={newCommunication.subject}
-                      onChange={(e) => setNewCommunication({ ...newCommunication, subject: e.target.value })}
-                      placeholder="Введите тему..."
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Содержание:</label>
-                    <textarea
-                      value={newCommunication.content}
-                      onChange={(e) => setNewCommunication({ ...newCommunication, content: e.target.value })}
-                      placeholder="Введите содержание коммуникации..."
-                      rows={4}
-                    />
-                  </div>
-                  <button className="add-communication-button" onClick={handleAddCommunication}>
-                    Добавить запись
-                  </button>
-                </div>
-              )}
-
-              <div className="communications-list">
-                {parent.communications.map((communication) => (
-                  <div key={communication.id} className="communication-card">
-                    <div className="communication-header">
-                      <div className="communication-type-date">
-                        <span className={`communication-type ${communication.type.toLowerCase().replace(" ", "-")}`}>
-                          {communication.type}
-                        </span>
-                        <span className="communication-date">
-                          {new Date(communication.date).toLocaleDateString("ru-RU")}
-                        </span>
-                      </div>
-                      <h4>{communication.subject}</h4>
-                    </div>
-                    <div className="communication-content">{communication.content}</div>
-                    <div className="communication-footer">
-                      <span className="communication-staff">Сотрудник: {communication.staff}</span>
-                      {editMode && (
-                        <div className="communication-actions">
-                          <button className="edit-item-button">Редактировать</button>
-                          <button className="delete-item-button">Удалить</button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }

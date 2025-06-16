@@ -45,7 +45,7 @@ export const ParentContent = () => {
       
       const newParent = { 
         ...values, 
-        tg: Date.now().toString(),
+    
         children_ids: values.children || [], // Сохраняем только ID детей как масси
       };
       

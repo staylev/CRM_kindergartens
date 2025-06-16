@@ -1,11 +1,10 @@
 import { Button, Form, Input, Modal, Popconfirm, Select, Table, TableProps } from "antd";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ParentsAttributes } from "../../types/Parent..type";
+import { Parents, ParentsAttributes } from "../../types/Parent..type";
 
- 
 interface TablechildProps {
-  refreshTable: number; // Используется как ключ обновления
+  refreshTable: number;
 }
 
 type LayoutType = Parameters<typeof Form>[0]["layout"];
@@ -52,7 +51,7 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
   };
 
   const handleEdit = (record: ParentsAttributes) => {
-    setEditingId(record.tg);
+    setEditingId(record.id);
     form.setFieldsValue(record);
     showModal();
   };
@@ -61,10 +60,10 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
     setIsModalOpen(true);
   };
 
-  const handleLinkClick = (id: string) => {
-    navigate(`/parents/${id}`);
+  const handleLinkClick = (record: ParentsAttributes) => {
+    navigate(`/parents/${record.tg}`); 
   };
-
+  
   const handleCancel = () => {
     setIsModalOpen(false);
     form.resetFields();
@@ -78,11 +77,11 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
       
       if (editingId) {
         const updatedParents = parents.map((parent: ParentsAttributes) => 
-          parent.tg === editingId ? { ...parent, ...values } : parent
+          parent.id === editingId ? { ...parent, ...values } : parent
         );
         localStorage.setItem('parents', JSON.stringify(updatedParents));
       } else {
-        const newParent = { ...values, tg: Date.now().toString() };
+        const newParent = { ...values, id: Date.now().toString() };
         localStorage.setItem('parents', JSON.stringify([...parents, newParent]));
       }
       
@@ -95,16 +94,16 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
 
   const handleDelete = (id: string) => {
     const parents = localStorage.getItem('parents') ? JSON.parse(localStorage.getItem('parents')!) : [];
-    const updatedParents = parents.filter((parent: ParentsAttributes) => parent.tg !== id);
+    const updatedParents = parents.filter((parent: ParentsAttributes) => parent.id !== id);
     localStorage.setItem('parents', JSON.stringify(updatedParents));
     loadParents();
   };
 
   const columns: TableProps<ParentsAttributes>["columns"] = [
     {
-      title: 'tg пользователя',
-      dataIndex: 'tg',
-      key: 'tg',
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
       render: (text) => <a>{text}</a>,
     },
     {
@@ -158,13 +157,13 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
           <Button type="link" onClick={() => handleEdit(record)}> 
             Изменить
           </Button>
-          <Button type="link" onClick={() => handleLinkClick(record.tg)}> 
+          <Button type="link" onClick={() => handleLinkClick(record)}> 
             Подробнее
           </Button>
           <Popconfirm
             title="Удаление записи"
             description="Вы уверены, что хотите удалить запись?"
-            onConfirm={() => handleDelete(record.tg)}
+            onConfirm={() => handleDelete(record.id)}
             okText="Да"
             cancelText="Нет"
           >
@@ -180,7 +179,7 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
       <Table<ParentsAttributes>
         columns={columns}
         dataSource={dataSource}
-        rowKey={(record) => record.tg}
+        rowKey={(record) => record.id}
         pagination={{
           defaultPageSize: 10,
           showSizeChanger: true,
@@ -208,13 +207,13 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
           initialValues={{ layout: formLayout }}
         >
           <Form.Item
-            label="Telegram ID"
-            name="tg"
+            label="ID"
+            name="id"
             rules={[
-              { required: true, message: "Пожалуйста, введите Telegram ID" },
+              { required: true, message: "Пожалуйста, введите ID" },
             ]}
           >
-            <Input placeholder="Telegram ID" disabled={!!editingId} />
+            <Input placeholder="ID" disabled={!!editingId} />
           </Form.Item>
           <Form.Item
             label="Имя"
@@ -251,7 +250,7 @@ const ParentTable: React.FC<TablechildProps> = ({ refreshTable }) => {
           </Form.Item>
           <Form.Item
             label="Дети"
-            name={["children", "id"]}
+            name="children_ids"
             rules={[
               { required: true, message: "Пожалуйста, добавьте ребёнка" },
             ]}

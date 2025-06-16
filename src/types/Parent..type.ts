@@ -29,6 +29,7 @@ export interface Parents {
   }
   
   export interface ParentsAttributes {
+    id: string;
     tg: string;
     frist_name: string;
     last_name: string;
@@ -44,7 +45,7 @@ export interface Parents {
     children_ids : string[];
   }
   
-  export interface ChildData {
+  export interface ParentData {
     id: string;
     type: string;
     attributes: ParentsAttributes;
