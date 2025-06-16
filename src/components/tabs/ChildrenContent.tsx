@@ -9,21 +9,40 @@ export const ChildrenContent = () => {
   const [form] = Form.useForm();
   const [formLayout, setFormLayout] = useState<LayoutType>("horizontal");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [groups, setGroups] = useState<any[]>([]);
+  const [allGroups, setAllGroups] = useState<any[]>([]);
   const [kindergartens, setKindergartens] = useState<any[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<any[]>([]);
+  const [selectedKindergarten, setSelectedKindergarten] = useState<string | null>(null);
 
   useEffect(() => {
     const storedGroups = localStorage.getItem('groups');
     if (storedGroups) {
-      setGroups(JSON.parse(storedGroups).data || []);
+      const parsedGroups = JSON.parse(storedGroups);
+      setAllGroups(parsedGroups.data || []);
     }
-    console.log(groups);
-    const storedkindergartens = localStorage.getItem('kindergartens');
-    if (storedkindergartens) {
-      setKindergartens(JSON.parse(storedkindergartens));
+
+    const storedKindergartens = localStorage.getItem('kindergartens');
+    if (storedKindergartens) {
+      setKindergartens(JSON.parse(storedKindergartens));
     }
- 
   }, []);
+
+  const handleKindergartenChange = (kindergartenTitle: string) => {
+    // Находим детский сад по названию
+    const selectedKindergartenObj = kindergartens.find(k => k.attributes.title === kindergartenTitle);
+    
+    if (selectedKindergartenObj) {
+      setSelectedKindergarten(selectedKindergartenObj.id);
+      form.setFieldsValue({ attributes: { group_id: undefined } }); // Сбрасываем выбор группы
+      
+      // Фильтруем группы по названию детского сада
+      const filtered = allGroups.filter(group => 
+        group.attributes.kindergarten_title === kindergartenTitle
+      );
+      
+      setFilteredGroups(filtered);
+    }
+  };
 
   const onFinish = (values: any) => {
     try {
@@ -34,8 +53,9 @@ export const ChildrenContent = () => {
         data: []
       };
 
-      const selectedGroup = groups.find(g => g.id === values.attributes.group_id);
-      const selectedKindergarten = kindergartens.find(k => k.id === values.attributes.kindergarten_title);
+      const selectedGroup = filteredGroups.find(g => g.id === values.attributes.group_id);
+      const selectedKindergartenObj = kindergartens.find(k => k.attributes.title === values.attributes.kindergarten_title);
+      
       const newChild = {
         type: "child",
         id: Date.now().toString(),
@@ -47,8 +67,8 @@ export const ChildrenContent = () => {
           group_title: selectedGroup?.attributes?.title || '',
           gender: '',
           image: '',
-          kindergarten_title: selectedKindergarten?.attributes?.title || '',
-          kindergartens_id: selectedKindergarten?.id || '',
+          kindergarten_title: selectedKindergartenObj?.attributes?.title || '',
+          kindergartens_id: selectedKindergartenObj?.id || '',
         },
         relationships: {
           group: {
@@ -59,7 +79,6 @@ export const ChildrenContent = () => {
           }
         }
       };
-      console.log(newChild);
 
       const updatedData = {
         ...childrenData,
@@ -75,6 +94,8 @@ export const ChildrenContent = () => {
       form.resetFields();
       setRefreshTable(prev => !prev);
       setIsModalOpen(false);
+      setSelectedKindergarten(null);
+      setFilteredGroups([]);
     } catch (error) {
       message.error('Ошибка при добавлении ребёнка');
     }
@@ -90,6 +111,8 @@ export const ChildrenContent = () => {
 
   const handleCancel = () => {
     setIsModalOpen(false);
+    setSelectedKindergarten(null);
+    setFilteredGroups([]);
   };
 
   return (
@@ -140,27 +163,33 @@ export const ChildrenContent = () => {
             <DatePicker format="YYYY-MM-DD" />
           </Form.Item>
           <Form.Item
-            label="Группа"
-            name={["attributes", "group_id"]}
-            rules={[{ required: true, message: "Выберите группу" }]}
+            label="Детский сад"
+            name={["attributes", "kindergarten_title"]}
+            rules={[{ required: true, message: "Пожалуйста, выберите Детский сад" }]}
           >
-            <Select>
-              {groups.map(group => (
-                <Select.Option key={group.id} value={group.id}>
-                  {group.attributes.title}
+            <Select 
+              onChange={handleKindergartenChange}
+              placeholder="Выберите детский сад"
+            >
+              {kindergartens.map((kindergarten) => (
+                <Select.Option key={kindergarten.id} value={kindergarten.attributes.title}>
+                  {kindergarten.attributes.title}
                 </Select.Option>
               ))}
             </Select>
           </Form.Item>
           <Form.Item
-            label="Детский сад"
-            name={["attributes", "kindergarten_title"]}
-            rules={[{ required: true, message: "Пожалуйста, выберите Детский сад" }]}
+            label="Группа"
+            name={["attributes", "group_id"]}
+            rules={[{ required: true, message: "Выберите группу" }]}
           >
-            <Select>
-              {kindergartens.map((kindergarten)=> (
-                <Select.Option key={kindergarten.id}>
-                  {kindergarten.attributes.title}
+            <Select 
+              disabled={!selectedKindergarten}
+              placeholder={selectedKindergarten ? "Выберите группу" : "Сначала выберите детский сад"}
+            >
+              {filteredGroups.map(group => (
+                <Select.Option key={group.id} value={group.id}>
+                  {group.attributes.title}
                 </Select.Option>
               ))}
             </Select>
@@ -169,4 +198,4 @@ export const ChildrenContent = () => {
       </Modal>
     </div>
   );
-};
+}
